@@ -15,6 +15,8 @@ const envs: Record<string, string | undefined> = {
   HIDE_LOGS: process.env.HIDE_LOGS,
   USERS_TABLE_NAME: process.env.USERS_TABLE_NAME,
   JOBS_TABLE_NAME: process.env.JOBS_TABLE_NAME,
+  TOKEN_KEY: process.env.TOKEN_KEY,
+  MONGO_URL: process.env.TOKEN_KEY,
 };
 
 export type Stage = 'local' | 'dev' | 'test' | 'prod';

@@ -18,7 +18,8 @@
       "@helper/*": ["./helper/*"],
       "@interfaces/*": ["./interfaces/*"],
       "@errors/*": ["./errors/*"]
-    }
+    },
+    "allowSyntheticDefaultImports": true
   },
   "exclude": ["node_modules", "coverage", ".build", ".git"]
 }

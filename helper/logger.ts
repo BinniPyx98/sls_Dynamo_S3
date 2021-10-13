@@ -1,5 +1,12 @@
 import { getEnv } from '@helper/environment';
 import { format } from '@redtea/format-axios-error';
+// import SimpleNodeLogger from 'simple-node-logger';
+// export const logger = SimpleNodeLogger.createRollingFileLogger({
+//   logDirectory: './src/logger',
+//   dateFormat: 'DD.MM.YYYY',
+//   fileNamePattern: 'info_<DATE>.log',
+//   //RollingInterval.Day
+// });
 
 export function log(...args): undefined {
   /**
