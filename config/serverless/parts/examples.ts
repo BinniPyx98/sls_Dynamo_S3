@@ -111,9 +111,30 @@ export const examplesConfig: AWSPartitial = {
         },
       ],
     },
+    registration: {
+      handler: 'api/rest-api/registration.registration',
+      memorySize: 128,
+      events: [
+        {
+          http: {
+            path: '/registration',
+            method: 'post',
+            integration: 'lambda',
+            cors: true,
+            response: {
+              headers: {
+                'Access-Control-Allow-Origin': "'*'",
+                'Content-Type': "'application/json'",
+              },
+              template: "$input.json('$')",
+            },
+          },
+        },
+      ],
+    },
     exampleAuthorizerRestApi: {
       handler: 'api/auth/handler.restApi',
-      memorySize: 500,
+      memorySize: 128,
     },
   },
 };

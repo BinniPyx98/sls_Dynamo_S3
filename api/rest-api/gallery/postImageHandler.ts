@@ -1,12 +1,9 @@
-// import { logger } from '../../logger/logger.js';
 // import fs from 'fs';
 // import { saveImgInDb } from '../saveInDb/saveInDb.js';
 // import { __pathToGallery } from '../pathToGallery.js';
 //
 // let galleryPageNumber = 1;
 // let imageName = '';
-//
-//
 //
 // import { log } from '@helper/logger';
 // import { Handler } from 'aws-lambda';
