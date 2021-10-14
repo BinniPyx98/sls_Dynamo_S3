@@ -1,9 +1,10 @@
 import { log } from '@helper/logger';
 import * as mongoose from 'mongoose';
-import { getEnv } from '@helper/environment';
+import * as dot from 'dotenv';
 
-mongoose.connect(getEnv('MONGO_URL'));
-
+dot.config();
+// @ts-ignore
+mongoose.connect(process.env.MONGO_URL);
 const checkConnect = mongoose.connection;
 
 checkConnect.on('error', (error) => {
@@ -12,4 +13,5 @@ checkConnect.on('error', (error) => {
 checkConnect.on('open', () => {
   log('Connect to db success');
 });
+
 export { checkConnect };

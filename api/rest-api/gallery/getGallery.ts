@@ -1,12 +1,8 @@
 import { checkFilterAndFindInDb } from './checkFilterAndFindInDb';
-
 /*
  * work aster user do get request on http://localhost:5400/gallery?page=<pageNumber>&filter=<filter>
  */
-
-//import { log } from '@helper/logger';
 import { Handler } from 'aws-lambda';
-//import { errorHandler } from '@helper/rest-api/error-handler';
 import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
 
 export const getHandler: Handler<APIGatewayLambdaEvent<null>, any> = async (event) => {
