@@ -9,6 +9,4 @@ const ImageSchema = new mongoose.Schema(
   { collection: 'image' }
 );
 
-//dont use const for imageModel because will overwrite error
-// eslint-disable-next-line no-use-before-define
-export let imageModel = mongoose.model('imageModel', ImageSchema);
+export const imageModel = mongoose.model('imageModel', ImageSchema);

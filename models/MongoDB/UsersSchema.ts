@@ -9,6 +9,4 @@ const UsersSchema = new mongoose.Schema(
   },
   { collection: 'users' }
 );
-//dont use const for  userModel because will overwrite error
-// eslint-disable-next-line no-use-before-define
-export let userModel = mongoose.model('userModel', UsersSchema);
+export const userModel = mongoose.model('userModel', UsersSchema);
