@@ -1,10 +1,10 @@
+import { baseErrorHandler } from '@helper/base-error-handler';
 import * as multipart from 'aws-lambda-multipart-parser';
 import * as fs from 'fs';
 import { Handler } from 'aws-lambda';
 import { saveImgInDb } from './saveInDb';
 import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
 
-let galleryPageNumber = 1;
 let imageName = '';
 
 /*
@@ -13,15 +13,14 @@ let imageName = '';
 export const postImageHandler: Handler<APIGatewayLambdaEvent<null>, string> = async (event) => {
   const parseEvent = multipart.parse(event, true);
   const fileData = parseEvent.img;
-  galleryPageNumber = Number(event.query.page);
   imageName = fileData.filename;
 
-  if (fileData) {
+  if (!fileData) {
+    return "request haven't file";
+  } else {
     trySaveToDir(imageName, fileData.content);
     trySaveToMongoDb(event, parseEvent);
-    return '200';
-  } else {
-    return "request haven't file";
+    return 'img save';
   }
 };
 
@@ -33,6 +32,7 @@ function trySaveToDir(imageName: string, Image: Buffer) {
     (err) => {
       if (err) {
         console.log(err);
+        baseErrorHandler(err);
       }
     }
   );

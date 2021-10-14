@@ -1,4 +1,3 @@
-//import { logger } from '@helper/logger';
 import { getEnv } from '@helper/environment';
 import { userModel } from '@models/MongoDB/UsersSchema';
 import * as jwt from 'jsonwebtoken';

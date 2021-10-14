@@ -1,5 +1,5 @@
 import { checkConnect } from '@services/mongo-connect';
-import fileMetadata from 'file-metadata';
+//import {fileMetadata} from 'file-metadata';
 import { getUserIdFromToken } from '../getUserIdFromToken';
 import { imageModel } from '@models/MongoDB/ImageSchema';
 
@@ -12,16 +12,16 @@ export async function saveImgInDb(event, parseEvent) {
 
   const image = new imageModel({
     path: `/img/` + parseEvent.img.filename,
-    metadata: await fileMetadata(`/img/` + parseEvent.img.filename),
+    metadata: 'have some bug',
     userId: userId,
   });
 
   const result = customInsertOne(image);
 
-  if (!result) {
-    throw { errorMessage: 'img exist' };
+  if (result) {
+    console.log('img was add');
   } else {
-    await checkConnect.close();
+    console.log('img exist');
   }
 }
 
