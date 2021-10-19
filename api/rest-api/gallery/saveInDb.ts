@@ -1,4 +1,4 @@
-import { connect } from '@services/mongo-connect';
+import connect from '@services/mongo-connect';
 import { exec } from 'child_process';
 import { getUserIdFromToken } from '../getUserIdFromToken';
 import { imageModel } from '@models/MongoDB/ImageSchema';
@@ -7,7 +7,7 @@ import { imageModel } from '@models/MongoDB/ImageSchema';
  * work after user request on upload file to the server
  */
 export async function saveImgInDb(event, parseEvent) {
-  const connectToMongo = connect();
+  const connectToMongo = await connect;
   console.log(connectToMongo);
   const userId = await getUserIdFromToken(event);
   const image = new imageModel({

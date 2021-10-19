@@ -5,8 +5,7 @@ import * as dot from 'dotenv';
 dot.config();
 
 let dbConnection;
-
-export function connect() {
+const connect = new Promise(function (resolve, reject) {
   if (dbConnection) {
     return dbConnection;
   } else {
@@ -14,11 +13,12 @@ export function connect() {
     dbConnection = mongoose.connect(process.env.MONGO_URL);
     dbConnection.on('error', (error) => {
       log(error);
-      return error;
+      reject(error);
     });
     dbConnection.on('open', () => {
       log('Connect to db success');
-      return dbConnection;
+      resolve(dbConnection);
     });
   }
-}
+});
+export default connect;
