@@ -8,7 +8,7 @@ import connect from '@services/mongo-connect';
  */
 
 export const authorization: Handler<APIGatewayLambdaEvent<null>, any> = async (event) => {
-  const connectToMongo = await connect;
+  const connectToMongo = await connect();
   console.log(connectToMongo);
   const authData = event.body;
   const authResult = await checkAuthData(authData);

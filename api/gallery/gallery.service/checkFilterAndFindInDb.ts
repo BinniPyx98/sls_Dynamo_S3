@@ -1,9 +1,9 @@
-import { getUserIdFromToken } from '../getUserIdFromToken';
+import { getUserIdFromToken } from './getUserIdFromToken';
 import { imageModel } from '@models/MongoDB/ImageSchema';
 import connect from '@services/mongo-connect';
 
 export async function checkFilterAndFindInDb(event) {
-  const connectToMongo = await connect;
+  const connectToMongo = await connect();
   console.log(connectToMongo);
   const pageNumber = Number(event.query.page);
   const limit = Number(event.query.limit);

@@ -2,16 +2,15 @@ import { log } from '@helper/logger';
 import { userModel } from '@models/MongoDB/UsersSchema';
 import connect from '@services/mongo-connect';
 import { APIGatewayAuthorizerResult, APIGatewayTokenAuthorizerWithContextHandler } from 'aws-lambda';
-import { getUserIdFromToken } from '../rest-api/getUserIdFromToken';
+import { getUserIdFromToken } from '../gallery/gallery.service/getUserIdFromToken';
 
 const UNAUTHORIZED = new Error('Unauthorized');
 
 // REST API authorizer
 // See: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-lambda-authorizer-output.html
 export const restApi: APIGatewayTokenAuthorizerWithContextHandler<Record<string, any>> = async (event) => {
-  console.log(event);
-  const connectDB = await connect;
-  log(event);
+  const connectDB = await connect();
+  log(event.authorizationToken);
   const userIDFromRequest = await getUserIdFromToken(event);
   console.log(userIDFromRequest);
 
@@ -28,7 +27,6 @@ export const restApi: APIGatewayTokenAuthorizerWithContextHandler<Record<string,
       throw UNAUTHORIZED;
     }
   }
-  await connectDB.close();
   return generatePolicy('user', 'Allow', '*', {});
 };
 

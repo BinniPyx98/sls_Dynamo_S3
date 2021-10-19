@@ -2,7 +2,7 @@ import { baseErrorHandler } from '@helper/base-error-handler';
 import * as multipart from 'aws-lambda-multipart-parser';
 import * as fs from 'fs';
 import { Handler } from 'aws-lambda';
-import { saveImgInDb } from './saveInDb';
+import { saveImgInDb } from '../gallery.service/saveInDb';
 import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
 
 let imageName = '';
