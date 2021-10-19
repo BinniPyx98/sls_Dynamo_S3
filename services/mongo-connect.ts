@@ -3,15 +3,22 @@ import * as mongoose from 'mongoose';
 import * as dot from 'dotenv';
 
 dot.config();
-// @ts-ignore
-mongoose.connect(process.env.MONGO_URL);
-const checkConnect = mongoose.connection;
 
-checkConnect.on('error', (error) => {
-  log(error);
-});
-checkConnect.on('open', () => {
-  log('Connect to db success');
-});
+let dbConnection;
 
-export { checkConnect };
+export function connect() {
+  if (dbConnection) {
+    return dbConnection;
+  } else {
+    // @ts-ignore
+    dbConnection = mongoose.connect(process.env.MONGO_URL);
+    dbConnection.on('error', (error) => {
+      log(error);
+      return error;
+    });
+    dbConnection.on('open', () => {
+      log('Connect to db success');
+      return dbConnection;
+    });
+  }
+}

@@ -1,9 +1,10 @@
 import { getUserIdFromToken } from '../getUserIdFromToken';
 import { imageModel } from '@models/MongoDB/ImageSchema';
-import { checkConnect } from '@services/mongo-connect';
+import { connect } from '@services/mongo-connect';
 
 export async function checkFilterAndFindInDb(event) {
-  const connectDb = checkConnect;
+  const connectToMongo = connect();
+  console.log(connectToMongo);
   const pageNumber = Number(event.query.page);
   const limit = Number(event.query.limit);
   const userIdFromRequest = await getUserIdFromToken(event);
@@ -17,7 +18,6 @@ export async function checkFilterAndFindInDb(event) {
     img = await getImageForTotal__ForFilterMyImage(userIdFromRequest);
     result = await getImageForResponse__ForFilterMyImage(userIdFromRequest, pageNumber, limit);
   }
-  await connectDb.close();
   return { result: result, img: img };
 }
 

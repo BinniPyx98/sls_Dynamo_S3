@@ -1,4 +1,4 @@
-import { checkConnect } from '@services/mongo-connect';
+import { connect } from '@services/mongo-connect';
 import { exec } from 'child_process';
 import { getUserIdFromToken } from '../getUserIdFromToken';
 import { imageModel } from '@models/MongoDB/ImageSchema';
@@ -7,13 +7,14 @@ import { imageModel } from '@models/MongoDB/ImageSchema';
  * work after user request on upload file to the server
  */
 export async function saveImgInDb(event, parseEvent) {
-  await checkConnect;
+  const connectToMongo = connect();
+  console.log(connectToMongo);
   const userId = await getUserIdFromToken(event);
-
   const image = new imageModel({
     path: `/img/` + parseEvent.img.filename,
     metadata: await fileMetadata(
-      `/Users/pm/Desktop/Astra/projects/module3/part1/sls/flo.sls/img/` + parseEvent.img.filename),
+      `/Users/pm/Desktop/Astra/projects/module3/part1/sls/flo.sls/img/` + parseEvent.img.filename
+    ),
     userId: userId,
   });
 
