@@ -9,8 +9,8 @@ const UNAUTHORIZED = new Error('Unauthorized');
 // REST API authorizer
 // See: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-lambda-authorizer-output.html
 export const restApi: APIGatewayTokenAuthorizerWithContextHandler<Record<string, any>> = async (event) => {
-  const connectDB = await connect();
-  log(event.authorizationToken);
+  const connectDB = connect();
+  log(event);
   const userIDFromRequest = await getUserIdFromToken(event);
   console.log(userIDFromRequest);
 
@@ -25,6 +25,8 @@ export const restApi: APIGatewayTokenAuthorizerWithContextHandler<Record<string,
     const existUserInDb = await userModel.find({ userId: userIDFromRequest });
     if (!existUserInDb) {
       throw UNAUTHORIZED;
+    } else {
+      return generatePolicy('user', 'Allow', '*', {});
     }
   }
   return generatePolicy('user', 'Allow', '*', {});

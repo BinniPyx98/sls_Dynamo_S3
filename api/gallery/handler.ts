@@ -37,7 +37,7 @@ if (process.env.LAMBDA_TASK_ROOT) {
  */
 
 export const getHandler: Handler<APIGatewayLambdaEvent<null>, any> = async (event) => {
-  log(event);
+  //log(event);
 
   try {
     /**

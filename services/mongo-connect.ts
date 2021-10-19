@@ -6,7 +6,7 @@ dot.config();
 
 let dbConnection;
 
-function connect() {
+async function connect() {
   return new Promise(function (resolve, reject) {
     if (dbConnection) {
       return dbConnection;

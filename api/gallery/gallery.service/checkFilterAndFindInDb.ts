@@ -3,15 +3,14 @@ import { imageModel } from '@models/MongoDB/ImageSchema';
 import connect from '@services/mongo-connect';
 
 export async function checkFilterAndFindInDb(event) {
-  const connectToMongo = await connect();
-  console.log(connectToMongo);
-  const pageNumber = Number(event.query.page);
-  const limit = Number(event.query.limit);
+  const connectToMongo = connect();
+  const pageNumber = Number(event.queryStringParameters.page);
+  const limit = Number(event.queryStringParameters.limit);
   const userIdFromRequest = await getUserIdFromToken(event);
   let result;
   let img;
 
-  if (event.query.filter === 'All') {
+  if (event.queryStringParameters.filter === 'All') {
     img = await getImageForTotal__ForFilterAll(userIdFromRequest);
     result = await getImageForResponse__ForFilterAll(userIdFromRequest, pageNumber, limit);
   } else {

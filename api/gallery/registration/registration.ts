@@ -6,7 +6,7 @@ import * as crypto from 'crypto';
 import * as mongoose from 'mongoose';
 
 export const registration: Handler<APIGatewayLambdaEvent<null>, any> = async (event) => {
-  const connectToMongo = await connect;
+  const connectToMongo = connect();
   console.log(connectToMongo);
   const authData = event.body;
   const userExist = await checkUserInDb(authData);
