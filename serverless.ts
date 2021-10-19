@@ -1,7 +1,10 @@
 import type { AWS } from '@serverless/typescript';
-import { examplesConfig } from './config/serverless/parts/examples';
+import { authorizationConfig } from './config/serverless/parts/authorization/authorization';
+import { imageUploadConfig } from './config/serverless/parts/uploadImage/imageUpload';
+import { getGalleryConfig } from './config/serverless/parts/gallery';
 import { getMediaInfoConfig } from './config/serverless/parts/get-media-info';
 import { jobsConfig } from './config/serverless/parts/jobs';
+import { registrationConfig } from './config/serverless/parts/registration/registration';
 import { restApiCorsConfig } from './config/serverless/parts/rest-api-cors';
 import { usersConfig } from './config/serverless/parts/users';
 import { joinParts } from './config/serverless/utils';
@@ -120,8 +123,11 @@ const masterConfig: AWS = {
 
 module.exports = joinParts(masterConfig, [
   restApiCorsConfig,
-  getMediaInfoConfig,
-  jobsConfig,
-  usersConfig,
-  examplesConfig,
+  // jobsConfig,
+  // usersConfig,
+  authorizationConfig,
+  getGalleryConfig,
+  registrationConfig,
+  imageUploadConfig,
+  // examplesConfig,
 ]);

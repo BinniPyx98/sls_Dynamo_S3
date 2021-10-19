@@ -11,7 +11,7 @@ export async function getUserIdFromToken(event) {
     const bearerToken = bearer[1];
 
     jwt.verify(bearerToken, tokenKey, function (err, decoded) {
-      console.log(decoded);
+      //console.log('decoded=' + decoded.id);
       userIdFromToken = decoded.id;
     });
   }

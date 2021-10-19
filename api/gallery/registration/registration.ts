@@ -1,12 +1,13 @@
 import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
 import { userModel } from '@models/MongoDB/UsersSchema';
-import { checkConnect } from '@services/mongo-connect';
+import connect from '@services/mongo-connect';
 import { Handler } from 'aws-lambda';
 import * as crypto from 'crypto';
 import * as mongoose from 'mongoose';
 
 export const registration: Handler<APIGatewayLambdaEvent<null>, any> = async (event) => {
-  await checkConnect;
+  const connectToMongo = connect();
+  console.log(connectToMongo);
   const authData = event.body;
   const userExist = await checkUserInDb(authData);
   if (userExist) {

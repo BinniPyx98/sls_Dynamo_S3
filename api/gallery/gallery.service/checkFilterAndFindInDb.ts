@@ -1,23 +1,22 @@
-import { getUserIdFromToken } from '../getUserIdFromToken';
+import { getUserIdFromToken } from './getUserIdFromToken';
 import { imageModel } from '@models/MongoDB/ImageSchema';
-import { checkConnect } from '@services/mongo-connect';
+import connect from '@services/mongo-connect';
 
 export async function checkFilterAndFindInDb(event) {
-  const connectDb = checkConnect;
-  const pageNumber = Number(event.query.page);
-  const limit = Number(event.query.limit);
+  const connectToMongo = connect();
+  const pageNumber = Number(event.queryStringParameters.page);
+  const limit = Number(event.queryStringParameters.limit);
   const userIdFromRequest = await getUserIdFromToken(event);
   let result;
   let img;
 
-  if (event.query.filter === 'All') {
+  if (event.queryStringParameters.filter === 'All') {
     img = await getImageForTotal__ForFilterAll(userIdFromRequest);
     result = await getImageForResponse__ForFilterAll(userIdFromRequest, pageNumber, limit);
   } else {
     img = await getImageForTotal__ForFilterMyImage(userIdFromRequest);
     result = await getImageForResponse__ForFilterMyImage(userIdFromRequest, pageNumber, limit);
   }
-  await connectDb.close();
   return { result: result, img: img };
 }
 
