@@ -1,6 +1,12 @@
 import { HttpBadRequestError } from '@errors/http';
+import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
 import { userModel } from '@models/MongoDB/UsersSchema';
-import { MediaInfoUrl } from './auth.inteface';
+import {
+  APIGatewayAuthorizerResult,
+  APIGatewayTokenAuthorizerEvent,
+  APIGatewayTokenAuthorizerWithContextHandler
+} from 'aws-lambda';
+import { UserAuthData, UserPresenceInDbInterface } from './auth.inteface';
 import { AuthService } from './auth.service';
 
 /**
@@ -26,7 +32,7 @@ export class AuthManager {
    * @param mediaInfoUrl - required data
    * @param mediaInfoCurlService - required services
    */
-  async tryRegistration(authData) {
+  async tryRegistration(authData: UserAuthData): Promise<void> {
     const userExist = await this.service.checkUserInDb(authData);
 
     if (userExist) {
@@ -35,13 +41,19 @@ export class AuthManager {
       const newUser = this.service.createNewUser(authData);
       this.service.addUserInDb(newUser);
     }
-    return this.service.checkUserInDb(authData);
   }
-  getUserIdFromToken(event) {
+
+  getUserIdFromToken(event: APIGatewayLambdaEvent<string>): Promise<string> {
     return this.service.getUserIdFromToken(event);
   }
 
-  async generatePolicy(event, user, access, headers, object) {
+  async generatePolicy<C extends APIGatewayAuthorizerResult['context']>(
+    event: APIGatewayTokenAuthorizerEvent,
+    user: string,
+    access: 'Allow' | 'Deny',
+    resource: string,
+    context: C
+  ): Promise<APIGatewayAuthorizerResult & { context: C }> {
     const userIDFromRequest = await this.service.getUserIdFromToken(event);
     const UNAUTHORIZED = new Error('Unauthorized');
 
@@ -58,10 +70,10 @@ export class AuthManager {
         throw UNAUTHORIZED;
       }
     }
-    return this.service.generatePolicy('user', 'Allow', '*', {});
+    return this.service.generatePolicy(user, access, resource, context);
   }
 
-  async checkAuthData(authData) {
+  async checkAuthData(authData: string): Promise<UserPresenceInDbInterface> {
     return await this.service.checkAuthData(authData);
   }
 }

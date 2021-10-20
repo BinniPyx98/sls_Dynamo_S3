@@ -2,6 +2,11 @@
  * This file should contain all required interfaces for the feature
  */
 
-export interface MediaInfoUrl {
-  url: string;
+export interface UserPresenceInDbInterface {
+  error: boolean;
+  data: string;
+}
+export interface UserAuthData {
+  email: string;
+  password: string;
 }

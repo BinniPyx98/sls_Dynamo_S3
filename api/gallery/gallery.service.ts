@@ -1,5 +1,6 @@
 import { baseErrorHandler } from '@helper/base-error-handler';
 import { getEnv } from '@helper/environment';
+import { log } from '@helper/logger';
 import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
 import { imageModel } from '@models/MongoDB/ImageSchema';
 import connect from '@services/mongo-connect';
@@ -7,6 +8,7 @@ import { Handler } from 'aws-lambda';
 import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as jwt from 'jsonwebtoken';
+import { test } from './gallery.inteface';
 
 export class GalleryService {
   async checkFilterAndFindInDb(event) {
@@ -27,7 +29,7 @@ export class GalleryService {
     return { result: result, img: img };
   }
 
-  async getImageForResponse__ForFilterAll(userIdFromRequest, pageNumber, limit) {
+  async getImageForResponse__ForFilterAll(userIdFromRequest: string, pageNumber: number, limit: number) {
     const imageFromDb = await imageModel
       .find({
         $or: [{ userId: userIdFromRequest }, { userId: '615aae0509d876c365438bf0' }],
@@ -39,7 +41,7 @@ export class GalleryService {
     return imageFromDb;
   }
 
-  async getImageForResponse__ForFilterMyImage(userIdFromRequest, pageNumber, limit) {
+  async getImageForResponse__ForFilterMyImage(userIdFromRequest: string, pageNumber: number, limit: number) {
     console.log('userIdFromRequest' + userIdFromRequest);
     const imageFromDb = await imageModel
       .find({ userId: userIdFromRequest })
@@ -50,7 +52,7 @@ export class GalleryService {
     return imageFromDb;
   }
 
-  async getImageForTotal__ForFilterAll(userIdFromRequest) {
+  async getImageForTotal__ForFilterAll(userIdFromRequest: string) {
     const imgForTotal = await imageModel
       .find({
         $or: [{ userId: userIdFromRequest }, { userId: '615aae0509d876c365438bf0' }],
@@ -60,36 +62,34 @@ export class GalleryService {
     return imgForTotal;
   }
 
-  async getImageForTotal__ForFilterMyImage(userIdFromRequest) {
+  async getImageForTotal__ForFilterMyImage(userIdFromRequest: string) {
     const imgForTotal = await imageModel.find({ userId: userIdFromRequest }).lean();
-
+    log('imgForTotal=' + imgForTotal);
     return imgForTotal;
   }
 
-  async createGalleryObject(event, dbResult) {
+  async createGalleryObject(event, dbResult): Promise<test> {
     const pageNumber = Number(event.queryStringParameters.page);
     const limit = Number(event.queryStringParameters.limit);
     const imagePathArray: Array<string> = []; //img path array
-    try {
-      const total = Math.ceil(Number(dbResult.img.length) / limit);
 
-      for (const file of dbResult.result) {
-        // @ts-ignore
-        imagePathArray.push(String(file.path));
-      }
+    const total = Math.ceil(Number(dbResult.img.length) / limit);
 
-      const galleryObj = {
-        total: total,
-        page: Number(pageNumber),
-        objects: imagePathArray,
-      };
-
-      return galleryObj;
-    } catch (err) {
-      console.log(err);
+    for (const file of dbResult.result) {
+      // @ts-ignore
+      imagePathArray.push(String(file.path));
     }
+
+    const galleryObj = {
+      total: total,
+      page: Number(pageNumber),
+      objects: imagePathArray,
+    };
+
+    return galleryObj;
   }
-  async getUserIdFromToken(event) {
+
+  async getUserIdFromToken(event): Promise<string> {
     const tokenKey = getEnv('TOKEN_KEY');
     let userIdFromToken;
     const bearerHeader = event.authorizationToken;
@@ -105,7 +105,8 @@ export class GalleryService {
 
     return userIdFromToken;
   }
-  async saveImgInDb(event, parseEvent) {
+
+  async saveImgInDb(event, parseEvent): Promise<void> {
     const connectToMongo = connect();
     console.log(connectToMongo);
     const userId = await this.getUserIdFromToken(event);
@@ -126,7 +127,7 @@ export class GalleryService {
     }
   }
 
-  async fileMetadata(filePath) {
+  async fileMetadata(filePath: string): Promise<any> {
     exec(`mdls ${filePath}`, (error, stdout, stderr) => {
       if (error) {
         console.error(`error: ${error.message}`);
@@ -142,17 +143,17 @@ export class GalleryService {
     });
   }
 
-  customInsertOne(image) {
+  customInsertOne(image): boolean {
     let result;
 
     imageModel.findOne({ path: image.path }, (err, doc) => {
       if (err) {
-        console.log(err);
+        log(err);
       } else {
         if (!doc) {
           result = this.insertImg(image);
         } else {
-          console.log({ errorMessage: 'img exist in db' });
+          log({ errorMessage: 'img exist in db' });
           result = false;
         }
       }
@@ -165,31 +166,33 @@ export class GalleryService {
 
     image.save(function (err, DbResult) {
       if (err) {
-        console.log(err);
+        log(err);
         status = false;
       }
       status = true;
     });
     return status;
   }
-  trySaveToDir(imageName: string, Image: Buffer) {
+
+  trySaveToDir(imageName: string, Image: Buffer): void {
     fs.writeFile(
       `/Users/pm/Desktop/Astra/projects/module3/part1/sls/flo.sls/img/${imageName}`,
       Image,
       { flag: 'wx' },
       (err) => {
         if (err) {
-          console.log(err);
+          log(err);
           baseErrorHandler(err);
         }
       }
     );
   }
-  trySaveToMongoDb(event: any, parseEvent: any) {
+
+  trySaveToMongoDb(event: any, parseEvent: any): void {
     try {
       this.saveImgInDb(event, parseEvent);
     } catch (err) {
-      console.log(err);
+      log(err);
       throw new Error('fail trySaveToMongoDb');
     }
   }

@@ -1,12 +1,10 @@
 import { getEnv } from '@helper/environment';
-import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
 import { userModel } from '@models/MongoDB/UsersSchema';
-import connect from '@services/mongo-connect';
-import { APIGatewayAuthorizerResult, Handler } from 'aws-lambda';
-import { exec } from 'child_process';
+import { APIGatewayAuthorizerResult, APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
 import * as crypto from 'crypto';
 import * as jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import { UserAuthData, UserPresenceInDbInterface } from './auth.inteface';
 export class AuthService {
   createNewUser = (authData) => {
     const [userPasswordFromQuery, userEmailFromQuery] = [authData.password, authData.email];
@@ -19,22 +17,21 @@ export class AuthService {
 
     return newUser;
   };
-
-  async checkUserInDb(authData) {
+  async checkUserInDb(authData: UserAuthData): Promise<boolean> {
     const userEmailFromQuery = authData.email;
-    const userPresenceInDb = await userModel.findOne({ email: userEmailFromQuery });
+    const userPresenceInDb: boolean = await userModel.findOne({ email: userEmailFromQuery });
 
     return userPresenceInDb;
   }
 
-  addUserInDb(newUser) {
+  addUserInDb(newUser): void {
     newUser.save(function (err, DbResult) {
       if (err) {
         throw err;
       }
     });
   }
-  async getUserIdFromToken(event) {
+  async getUserIdFromToken(event: APIGatewayTokenAuthorizerEvent): Promise<string> {
     const tokenKey = getEnv('TOKEN_KEY');
     let userIdFromToken;
     const bearerHeader = event.authorizationToken;
@@ -50,7 +47,7 @@ export class AuthService {
 
     return userIdFromToken;
   }
-  async checkAuthData(authData) {
+  async checkAuthData(authData: UserAuthData): Promise<UserPresenceInDbInterface> {
     const tokenKey = getEnv('TOKEN_KEY');
 
     const [userPasswordFromQuery, userEmailFromQuery] = [authData.password, authData.email];

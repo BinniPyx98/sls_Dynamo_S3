@@ -28,8 +28,8 @@ export class GalleryManager {
   checkFilterAndFindInDb(event) {
     return this.service.checkFilterAndFindInDb(event);
   }
-  createGalleryObject(event, dbResult) {
-    return this.service.createGalleryObject(event, dbResult);
+  async createGalleryObject(event, dbResult) {
+    return await this.service.createGalleryObject(event, dbResult);
   }
   trySaveToDir(imageName, content) {
     return this.service.trySaveToMongoDb(imageName, content);
