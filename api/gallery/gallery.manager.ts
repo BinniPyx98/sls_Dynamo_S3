@@ -1,6 +1,4 @@
-import { MediaInfoCurlService, Track } from '@services/media-info-curl.service';
 import { HttpBadRequestError } from '@errors/http';
-import { MediaInfoUrl } from './gallery.inteface';
 import { GalleryService } from './gallery.service';
 
 /**
@@ -26,23 +24,17 @@ export class GalleryManager {
    * @param mediaInfoUrl - required data
    * @param mediaInfoCurlService - required services
    */
-  // getMediaInfo(mediaInfoUrl: MediaInfoUrl, mediaInfoCurlService: MediaInfoCurlService): Promise<Track> {
-  //   /**
-  //    * Validate required data -> Check if url exists
-  //    */
-  //   if (!mediaInfoUrl.url) {
-  //     throw new HttpBadRequestError("The param 'url' is required.");
-  //   }
-  //
-  //   /**
-  //    * Display the main step of the algorithm and call the feature service's method -> Return Media Info
-  //    */
-  //   return this.service.getMediaInfo(mediaInfoUrl.url, mediaInfoCurlService);
-  // }
+
   checkFilterAndFindInDb(event) {
     return this.service.checkFilterAndFindInDb(event);
   }
-  createGalleryObject(event, dbResult) {
-    return this.service.createGalleryObject(event, dbResult);
+  async createGalleryObject(event, dbResult) {
+    return await this.service.createGalleryObject(event, dbResult);
+  }
+  trySaveToDir(imageName, content) {
+    return this.service.trySaveToMongoDb(imageName, content);
+  }
+  trySaveToMongoDb(event, parseEvent) {
+    return this.service.trySaveToMongoDb(event, parseEvent);
   }
 }
