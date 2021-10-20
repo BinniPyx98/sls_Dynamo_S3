@@ -1,11 +1,6 @@
-import { HttpBadRequestError } from '@errors/http';
 import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
 import { userModel } from '@models/MongoDB/UsersSchema';
-import {
-  APIGatewayAuthorizerResult,
-  APIGatewayTokenAuthorizerEvent,
-  APIGatewayTokenAuthorizerWithContextHandler
-} from 'aws-lambda';
+import { APIGatewayAuthorizerResult, APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
 import { UserAuthData, UserPresenceInDbInterface } from './auth.inteface';
 import { AuthService } from './auth.service';
 
@@ -43,7 +38,7 @@ export class AuthManager {
     }
   }
 
-  getUserIdFromToken(event: APIGatewayLambdaEvent<string>): Promise<string> {
+  getUserIdFromToken(event: APIGatewayTokenAuthorizerEvent): Promise<string> {
     return this.service.getUserIdFromToken(event);
   }
 
@@ -73,7 +68,7 @@ export class AuthManager {
     return this.service.generatePolicy(user, access, resource, context);
   }
 
-  async checkAuthData(authData: string): Promise<UserPresenceInDbInterface> {
+  async checkAuthData(authData: UserAuthData): Promise<UserPresenceInDbInterface> {
     return await this.service.checkAuthData(authData);
   }
 }
