@@ -2,10 +2,11 @@ import { errorHandler } from '@helper/http-api/error-handler';
 import { createResponse } from '@helper/http-api/response';
 import { log } from '@helper/logger';
 import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
-import { MediaInfoCurlService } from '@services/media-info-curl.service';
-import { APIGatewayProxyHandlerV2, Handler } from 'aws-lambda';
+import { Handler } from 'aws-lambda';
 import { MediaInfoUrl } from './gallery.inteface';
 import { GalleryManager } from './gallery.manager';
+import * as multipart from 'aws-lambda-multipart-parser';
+import * as fs from 'fs';
 
 /**
  * It's required if you use any external executable files like mediainfo-curl
@@ -36,38 +37,38 @@ if (process.env.LAMBDA_TASK_ROOT) {
  * @param context
  */
 
-export const getHandler: Handler<APIGatewayLambdaEvent<null>, any> = async (event) => {
+export const getGallery: Handler<APIGatewayLambdaEvent<null>, any> = async (event) => {
   //log(event);
 
   try {
-    /**
-     * Create the manager object
-     */
     const manager = new GalleryManager();
-
-    /**
-     * Prepare required data
-     */
-    // const mediaInfoUrl: MediaInfoUrl = JSON.parse(event.body!);
-
-    /**
-     * Prepare required services
-     */
-    //const mediaInfoCurlService = new MediaInfoCurlService();
-
     /**
      * Call the manager's method
      */
     const dbResult = await manager.checkFilterAndFindInDb(event);
     const result = await manager.createGalleryObject(event, dbResult);
-
-    // const result = await manager.getMediaInfo(mediaInfoUrl, mediaInfoCurlService);
-
     return createResponse(200, result);
   } catch (e) {
     /**
      * Handle all errors
      */
     return errorHandler(e);
+  }
+};
+
+let imageName = '';
+
+export const postImageHandler: Handler<APIGatewayLambdaEvent<null>, string> = async (event) => {
+  const manager = new GalleryManager();
+  const parseEvent = multipart.parse(event, true);
+  const fileData = parseEvent.img;
+  imageName = fileData.filename;
+
+  if (!fileData) {
+    return "request haven't file";
+  } else {
+    manager.trySaveToDir(imageName, fileData.content);
+    manager.trySaveToMongoDb(event, parseEvent);
+    return 'img save';
   }
 };
