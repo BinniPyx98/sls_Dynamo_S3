@@ -2,18 +2,18 @@ import { errorHandler } from '@helper/http-api/error-handler';
 import { log } from '@helper/logger';
 import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
 import { Handler } from 'aws-lambda';
-import { getGalleryInterface } from './gallery.inteface';
+import { GetGalleryObject } from './gallery.inteface';
 import { GalleryManager } from './gallery.manager';
 import * as multipart from 'aws-lambda-multipart-parser';
 
 /**
  * It's required if you use any external executable files like mediainfo-curl
  */
-if (process.env.LAMBDA_TASK_ROOT) {
-  process.env.PATH = `${process.env.PATH}:${process.env.LAMBDA_TASK_ROOT}/bin`;
-}
+// if (process.env.LAMBDA_TASK_ROOT) {
+//   process.env.PATH = `${process.env.PATH}:${process.env.LAMBDA_TASK_ROOT}/bin`;
+// }
 
-export const getGallery: Handler<APIGatewayLambdaEvent<getGalleryInterface>, any> = async (event) => {
+export const getGallery: Handler<APIGatewayLambdaEvent<GetGalleryObject>, any> = async (event) => {
   log(event);
 
   try {
@@ -43,15 +43,21 @@ let imageName = '';
 export const postImageHandler: Handler<APIGatewayLambdaEvent<string>, string> = async (event) => {
   log(event);
   const manager = new GalleryManager();
-  const parseEvent = multipart.parse(event, true);
+  let parseEvent;
+  try {
+    parseEvent = multipart.parse(event, true);
+  } catch (err) {
+    return {
+      statusCode: 415,
+      body: JSON.stringify({
+        message: 'request have not file',
+        body: err,
+      }),
+    };
+  }
   const fileData = parseEvent.img;
   imageName = fileData.filename;
-
-  if (!fileData) {
-    return 'request have not file';
-  } else {
-    manager.trySaveToDir(imageName, fileData.content);
-    manager.trySaveToMongoDb(event, parseEvent);
-    return 'img save';
-  }
+  manager.trySaveToDir(imageName, fileData.content);
+  manager.trySaveToMongoDb(event, parseEvent);
+  return 'img save';
 };

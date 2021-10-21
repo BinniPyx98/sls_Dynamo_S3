@@ -1,14 +1,12 @@
 import { baseErrorHandler } from '@helper/base-error-handler';
 import { getEnv } from '@helper/environment';
 import { log } from '@helper/logger';
-import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
 import { imageModel } from '@models/MongoDB/ImageSchema';
 import connect from '@services/mongo-connect';
-import { Handler } from 'aws-lambda';
 import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as jwt from 'jsonwebtoken';
-import { test } from './gallery.inteface';
+import { GalleryObject } from './gallery.inteface';
 
 export class GalleryService {
   async checkFilterAndFindInDb(event) {
@@ -68,7 +66,7 @@ export class GalleryService {
     return imgForTotal;
   }
 
-  async createGalleryObject(event, dbResult): Promise<test> {
+  async createGalleryObject(event, dbResult): Promise<GalleryObject> {
     const pageNumber = Number(event.queryStringParameters.page);
     const limit = Number(event.queryStringParameters.limit);
     const imagePathArray: Array<string> = []; //img path array

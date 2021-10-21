@@ -1,4 +1,3 @@
-import { HttpBadRequestError } from '@errors/http';
 import { GalleryService } from './gallery.service';
 
 /**

@@ -1,8 +1,7 @@
+import { getEnv } from '@helper/environment';
 import { log } from '@helper/logger';
 import * as mongoose from 'mongoose';
-import * as dot from 'dotenv';
 
-dot.config();
 
 let dbConnection;
 
@@ -12,7 +11,7 @@ async function connect() {
       return dbConnection;
     } else {
       // @ts-ignore
-      mongoose.connect(process.env.MONGO_URL);
+      mongoose.connect(getEnv('MONGO_URL'));
       const dbConnection = mongoose.connection;
       dbConnection.on('error', (error) => {
         log(error);
