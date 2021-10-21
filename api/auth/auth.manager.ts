@@ -1,4 +1,3 @@
-import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
 import { userModel } from '@models/MongoDB/UsersSchema';
 import { APIGatewayAuthorizerResult, APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
 import { UserAuthData, UserPresenceInDbInterface } from './auth.inteface';
