@@ -66,8 +66,8 @@ export class AuthService {
       },
     };
     userPresenceInDb = await dynamoClient.send(new GetItemCommand(params));
-    const userEmail = userPresenceInDb.Item!.email;
-    log(userEmail.S);
+    const userEmail = userPresenceInDb.Item!.email.S;
+    log(userEmail);
     /*
      * If user presence in db check password
      */

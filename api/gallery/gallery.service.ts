@@ -1,10 +1,12 @@
-import { GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { GetItemCommand, PutItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { baseErrorHandler } from '@helper/base-error-handler';
 import { getEnv } from '@helper/environment';
 import { log } from '@helper/logger';
 import { imageModel } from '@models/MongoDB/image.model';
 import { dynamoClient } from '@services/dynamo-connect';
 import connect from '@services/mongo-connect';
+import { S3Service } from '@services/s3.service';
+import { PutObjectOutput } from 'aws-sdk/clients/s3';
 import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as jwt from 'jsonwebtoken';
@@ -12,6 +14,8 @@ import { GalleryObject } from './gallery.inteface';
 
 export class GalleryService {
   async checkFilterAndFindInDb(event) {
+    log('filter ok');
+
     log(event.queryStringParameters.page);
     log(event.queryStringParameters.limit);
     const pageNumber = Number(event.queryStringParameters.page);
@@ -21,18 +25,19 @@ export class GalleryService {
 
     let objectTotalAndImage;
     let result;
-    let img;
+    let total;
 
     if (event.queryStringParameters.filter === 'All') {
       objectTotalAndImage = await this.getImageForResponse__ForFilterAll(userIdFromRequest, pageNumber, limit);
-      img = objectTotalAndImage.total;
+      total = objectTotalAndImage.total;
       result = objectTotalAndImage.result;
     } else {
       objectTotalAndImage = await this.getImageForResponse__ForFilterMyImage(userIdFromRequest, pageNumber, limit);
-      img = objectTotalAndImage.total;
+      total = objectTotalAndImage.total;
       result = objectTotalAndImage.result;
     }
-    return { result: result, img: img };
+    log('filterResult=' + result);
+    return { result: result, img: total };
   }
 
   async getImageForResponse__ForFilterAll(userIdFromRequest: string, pageNumber: number, limit: number) {
@@ -50,8 +55,8 @@ export class GalleryService {
     };
     const allImgFromDynamo = await dynamoClient.send(new GetItemCommand(all_Images));
     const myImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
-    const allArrayPath = myImgFromDynamo.Item!.object.SS;
-    let myArrayPath = allImgFromDynamo.Item!.object.SS;
+    const allArrayPath = myImgFromDynamo.Item!.objectImg.SS;
+    let myArrayPath = allImgFromDynamo.Item!.objectImg.SS;
     if (myArrayPath === undefined) myArrayPath = [];
     const contArray = allArrayPath!.concat(myArrayPath!);
     const total = Math.ceil(Number(contArray.length) / limit);
@@ -82,7 +87,7 @@ export class GalleryService {
       },
     };
     const allImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
-    let myArrayPath = allImgFromDynamo.Item!.object.SS;
+    let myArrayPath = allImgFromDynamo.Item!.objectImg.SS;
     log(myArrayPath);
     if (myArrayPath === undefined) myArrayPath = [];
     const total = Math.ceil(Number(myArrayPath.length) / limit);
@@ -144,28 +149,23 @@ export class GalleryService {
         userIdFromToken = decoded.id;
       });
     }
-    return userIdFromToken.S;
+    return userIdFromToken;
   }
 
-  async saveImgInDb(event, parseEvent): Promise<void> {
-    const connectToMongo = connect();
-    console.log(connectToMongo);
-    const userId = await this.getUserIdFromToken(event);
-    const image = new imageModel({
-      path: `/img/` + parseEvent.img.filename,
-      metadata: await this.fileMetadata(
-        `/Users/pm/Desktop/Astra/projects/module3/part1/sls/flo.sls/img/` + parseEvent.img.filename
-      ),
-      userId: userId,
-    });
-
-    const result = this.customInsertOne(image);
-
-    if (result) {
-      console.log('img was add');
-    } else {
-      console.log('img exist');
-    }
+  async saveImgInDb(event, parseEvent, s3URL): Promise<void> {
+    const userEmail = await this.getUserIdFromToken(event);
+    const newUser = {
+      TableName: 'Gallery',
+      Key: {
+        email: { S: userEmail },
+      },
+      UpdateExpression: 'ADD objectImg :o',
+      ExpressionAttributeValues: {
+        ':o': { SS: ['testAddItem2'] },
+      },
+    };
+    const res = await dynamoClient.send(new UpdateItemCommand(newUser));
+    log(res);
   }
 
   async fileMetadata(filePath: string): Promise<any> {
@@ -215,23 +215,21 @@ export class GalleryService {
     return status;
   }
 
-  trySaveToDir(imageName: string, Image: Buffer): void {
-    fs.writeFile(
-      `/Users/pm/Desktop/Astra/projects/module3/part1/sls/flo.sls/img/${imageName}`,
-      Image,
-      { flag: 'wx' },
-      (err) => {
-        if (err) {
-          log(err);
-          baseErrorHandler(err);
-        }
-      }
+  async trySaveToS3(parseEvent): Promise<PutObjectOutput> {
+    const s3 = new S3Service();
+    const result = await s3.put(
+      `${parseEvent.img.filename}`,
+      parseEvent.img.content,
+      'kalinichenko',
+      parseEvent.img.contentType
     );
+    log('S3 result= ' + result);
+    return result;
   }
 
-  trySaveToMongoDb(event: any, parseEvent: any): void {
+  trySaveToMongoDb(event: any, parseEvent: any, s3Url): void {
     try {
-      this.saveImgInDb(event, parseEvent);
+      this.saveImgInDb(event, parseEvent, s3Url);
     } catch (err) {
       log(err);
       throw new Error('fail trySaveToMongoDb');
