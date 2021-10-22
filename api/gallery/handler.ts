@@ -40,7 +40,7 @@ export const getGallery: Handler<APIGatewayLambdaEvent<GetGalleryObject>, any> =
 
 let imageName = '';
 
-export const postImageHandler: Handler<APIGatewayLambdaEvent<string>, string> = async (event) => {
+export const postImageHandler: Handler<APIGatewayLambdaEvent<string>, any> = async (event) => {
   log(event);
   const manager = new GalleryManager();
   let parseEvent;
@@ -59,5 +59,10 @@ export const postImageHandler: Handler<APIGatewayLambdaEvent<string>, string> = 
   imageName = fileData.filename;
   manager.trySaveToDir(imageName, fileData.content);
   manager.trySaveToMongoDb(event, parseEvent);
-  return 'img save';
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      message: 'img save',
+    }),
+  };
 };

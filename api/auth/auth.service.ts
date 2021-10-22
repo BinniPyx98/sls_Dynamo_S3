@@ -1,36 +1,42 @@
+import { GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { getEnv } from '@helper/environment';
-import { userModel } from '@models/MongoDB/UsersSchema';
+import { dynamoClient } from '@services/dynamo-connect';
 import { APIGatewayAuthorizerResult, APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
 import * as crypto from 'crypto';
 import * as jwt from 'jsonwebtoken';
-import mongoose from 'mongoose';
 import { UserAuthData, UserPresenceInDbInterface } from './auth.inteface';
+import { log } from '@helper/logger';
+
 export class AuthService {
   createNewUser = (authData) => {
     const [userPasswordFromQuery, userEmailFromQuery] = [authData.password, authData.email];
     const hashPass = crypto.createHash('sha256').update(userPasswordFromQuery).digest('hex');
-    const newUser = new userModel({
-      _id: new mongoose.mongo.ObjectId(),
-      email: userEmailFromQuery,
-      password: hashPass,
-    });
-
+    const newUser = {
+      TableName: 'Gallery',
+      Item: {
+        email: { S: userEmailFromQuery },
+        password: { S: hashPass },
+      },
+    };
     return newUser;
   };
-  async checkUserInDb(authData: UserAuthData): Promise<boolean> {
-    const userEmailFromQuery = authData.email;
-    const userPresenceInDb: boolean = await userModel.findOne({ email: userEmailFromQuery });
 
-    return userPresenceInDb;
+  async checkUserInDb(authData: UserAuthData) /*Promise<boolean>*/ {
+    const userEmailFromQuery = authData.email;
+    const params = {
+      TableName: 'Gallery',
+      Key: {
+        email: { S: userEmailFromQuery },
+      },
+    };
+    const userPresenceInDb = await dynamoClient.send(new GetItemCommand(params));
+    return userPresenceInDb.Item;
   }
 
   addUserInDb(newUser): void {
-    newUser.save(function (err, DbResult) {
-      if (err) {
-        throw err;
-      }
-    });
+    dynamoClient.send(new PutItemCommand(newUser));
   }
+
   async getUserIdFromToken(event: APIGatewayTokenAuthorizerEvent): Promise<string> {
     const tokenKey = getEnv('TOKEN_KEY');
     let userIdFromToken;
@@ -47,26 +53,32 @@ export class AuthService {
 
     return userIdFromToken;
   }
+
   async checkAuthData(authData: UserAuthData): Promise<UserPresenceInDbInterface> {
     const tokenKey = getEnv('TOKEN_KEY');
 
     const [userPasswordFromQuery, userEmailFromQuery] = [authData.password, authData.email];
     let userPresenceInDb;
-
-    userPresenceInDb = await userModel.findOne({ email: userEmailFromQuery });
-    const userId = userPresenceInDb._id;
+    const params = {
+      TableName: 'Gallery',
+      Key: {
+        email: { S: userEmailFromQuery },
+      },
+    };
+    userPresenceInDb = await dynamoClient.send(new GetItemCommand(params));
+    const userEmail = userPresenceInDb.Item!.email;
+    log(userEmail.S);
     /*
      * If user presence in db check password
      */
     const hashPass = crypto.createHash('sha256').update(userPasswordFromQuery).digest('hex');
-
     if (userPresenceInDb) {
-      if (userPresenceInDb.password === hashPass) {
+      if (userPresenceInDb.Item.password.S === hashPass) {
         console.log('successful authorization');
         userPresenceInDb = {
           error: false,
           data: {
-            token: jwt.sign({ id: userId }, tokenKey),
+            token: jwt.sign({ id: userEmail }, tokenKey),
           },
         };
       }

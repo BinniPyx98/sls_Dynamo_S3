@@ -95,6 +95,7 @@
     "webpack-node-externals": "3.0.0"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.37.0",
     "@redtea/format-axios-error": "^2.0.2",
     "@types/mongoose": "^5.11.97",
     "alai": "^1.0.3",

@@ -1,7 +1,9 @@
+import { GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { baseErrorHandler } from '@helper/base-error-handler';
 import { getEnv } from '@helper/environment';
 import { log } from '@helper/logger';
-import { imageModel } from '@models/MongoDB/ImageSchema';
+import { imageModel } from '@models/MongoDB/image.model';
+import { dynamoClient } from '@services/dynamo-connect';
 import connect from '@services/mongo-connect';
 import { exec } from 'child_process';
 import * as fs from 'fs';
@@ -10,44 +12,89 @@ import { GalleryObject } from './gallery.inteface';
 
 export class GalleryService {
   async checkFilterAndFindInDb(event) {
-    const connectToMongo = connect();
+    log(event.queryStringParameters.page);
+    log(event.queryStringParameters.limit);
     const pageNumber = Number(event.queryStringParameters.page);
     const limit = Number(event.queryStringParameters.limit);
     const userIdFromRequest = await this.getUserIdFromToken(event);
+    log(userIdFromRequest);
+
+    let objectTotalAndImage;
     let result;
     let img;
 
     if (event.queryStringParameters.filter === 'All') {
-      img = await this.getImageForTotal__ForFilterAll(userIdFromRequest);
-      result = await this.getImageForResponse__ForFilterAll(userIdFromRequest, pageNumber, limit);
+      objectTotalAndImage = await this.getImageForResponse__ForFilterAll(userIdFromRequest, pageNumber, limit);
+      img = objectTotalAndImage.total;
+      result = objectTotalAndImage.result;
     } else {
-      img = await this.getImageForTotal__ForFilterMyImage(userIdFromRequest);
-      result = await this.getImageForResponse__ForFilterMyImage(userIdFromRequest, pageNumber, limit);
+      objectTotalAndImage = await this.getImageForResponse__ForFilterMyImage(userIdFromRequest, pageNumber, limit);
+      img = objectTotalAndImage.total;
+      result = objectTotalAndImage.result;
     }
     return { result: result, img: img };
   }
 
   async getImageForResponse__ForFilterAll(userIdFromRequest: string, pageNumber: number, limit: number) {
-    const imageFromDb = await imageModel
-      .find({
-        $or: [{ userId: userIdFromRequest }, { userId: '615aae0509d876c365438bf0' }],
-      })
-      .lean()
-      .skip(Number((pageNumber - 1) * limit))
-      .limit(limit);
+    const all_Images = {
+      TableName: 'Gallery',
+      Key: {
+        email: { S: 'All' },
+      },
+    };
+    const myImages = {
+      TableName: 'Gallery',
+      Key: {
+        email: { S: userIdFromRequest },
+      },
+    };
+    const allImgFromDynamo = await dynamoClient.send(new GetItemCommand(all_Images));
+    const myImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
+    const allArrayPath = myImgFromDynamo.Item!.object.SS;
+    let myArrayPath = allImgFromDynamo.Item!.object.SS;
+    if (myArrayPath === undefined) myArrayPath = [];
+    const contArray = allArrayPath!.concat(myArrayPath!);
+    const total = Math.ceil(Number(contArray.length) / limit);
+    const skip = Number((pageNumber - 1) * limit);
+    let limitCounter = 0;
+    let result = [];
+    for (let i = skip; limitCounter < limit && i < contArray.length; i++) {
+      limitCounter++;
+      result.push(contArray[i]);
+    }
 
-    return imageFromDb;
+    // const imageFromDb = await imageMßodel
+    //   .find({
+    //     $or: [{ userId: userIdFromRequest }, { userId: '615aae0509d876c365438bf0' }],
+    //   })
+    //   .lean()
+    //   .skip(Number((pageNumber - 1) * limit))
+    //   .limit(limit);
+
+    return { result: result, total: total };
   }
 
   async getImageForResponse__ForFilterMyImage(userIdFromRequest: string, pageNumber: number, limit: number) {
-    console.log('userIdFromRequest' + userIdFromRequest);
-    const imageFromDb = await imageModel
-      .find({ userId: userIdFromRequest })
-      .lean()
-      .skip(Number((pageNumber - 1) * limit))
-      .limit(limit);
-
-    return imageFromDb;
+    const myImages = {
+      TableName: 'Gallery',
+      Key: {
+        email: { S: userIdFromRequest },
+      },
+    };
+    const allImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
+    let myArrayPath = allImgFromDynamo.Item!.object.SS;
+    log(myArrayPath);
+    if (myArrayPath === undefined) myArrayPath = [];
+    const total = Math.ceil(Number(myArrayPath.length) / limit);
+    const skip = Number((pageNumber - 1) * limit);
+    let limitCounter = 0;
+    let result = [];
+    for (let i = skip; limitCounter < limit && i < myArrayPath.length; i++) {
+      limitCounter++;
+      result.push(myArrayPath[i]);
+    }
+    log(result);
+    return { result: result, total: total };
   }
 
   async getImageForTotal__ForFilterAll(userIdFromRequest: string) {
@@ -69,14 +116,11 @@ export class GalleryService {
   async createGalleryObject(event, dbResult): Promise<GalleryObject> {
     const pageNumber = Number(event.queryStringParameters.page);
     const limit = Number(event.queryStringParameters.limit);
-    const imagePathArray: Array<string> = []; //img path array
+    let imagePathArray: Array<string> = []; //img path array
 
-    const total = Math.ceil(Number(dbResult.img.length) / limit);
+    const total = dbResult.total;
 
-    for (const file of dbResult.result) {
-      // @ts-ignore
-      imagePathArray.push(String(file.path));
-    }
+    imagePathArray = dbResult.result;
 
     const galleryObj = {
       total: total,
@@ -88,11 +132,11 @@ export class GalleryService {
   }
 
   async getUserIdFromToken(event): Promise<string> {
+    log(event);
     const tokenKey = getEnv('TOKEN_KEY');
     let userIdFromToken;
-    const bearerHeader = event.authorizationToken;
-
-    if (event.authorizationToken) {
+    const bearerHeader = event.headers.Authorization;
+    if (bearerHeader) {
       const bearer = bearerHeader.split(' ');
       const bearerToken = bearer[1];
 
@@ -100,8 +144,7 @@ export class GalleryService {
         userIdFromToken = decoded.id;
       });
     }
-
-    return userIdFromToken;
+    return userIdFromToken.S;
   }
 
   async saveImgInDb(event, parseEvent): Promise<void> {

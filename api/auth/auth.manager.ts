@@ -1,6 +1,6 @@
-import { userModel } from '@models/MongoDB/UsersSchema';
+import { userModel } from '@models/MongoDB/user.model';
 import { APIGatewayAuthorizerResult, APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
-import { UserAuthData, UserPresenceInDbInterface } from './auth.inteface';
+import { RegistrationResponse, UserAuthData, UserPresenceInDbInterface } from './auth.inteface';
 import { AuthService } from './auth.service';
 
 /**
@@ -18,22 +18,33 @@ export class AuthManager {
     this.service = new AuthService();
   }
 
-  /**
-   * This method implements some feature's functionality
-   * It should validate required data
-   * It should display the main steps of the algorithm without implementation
-   * All implementation should be placed in the feature service's methods
-   * @param mediaInfoUrl - required data
-   * @param mediaInfoCurlService - required services
-   */
-  async tryRegistration(authData: UserAuthData): Promise<void> {
+  // /**
+  //  * This method implements some feature's functionality
+  //  * It should validate required data
+  //  * It should display the main steps of the algorithm without implementation
+  //  * All implementation should be placed in the feature service's methods
+  //  * @param mediaInfoUrl - required data
+  //  * @param mediaInfoCurlService - required services
+  //  */
+  async tryRegistration(authData: UserAuthData): Promise<RegistrationResponse> {
     const userExist = await this.service.checkUserInDb(authData);
 
     if (userExist) {
-      throw 'This email address is already in use.';
+      return {
+        statusCode: 415,
+        body: JSON.stringify({
+          message: 'This email address is already in use.',
+        }),
+      };
     } else {
       const newUser = this.service.createNewUser(authData);
       this.service.addUserInDb(newUser);
+      return {
+        statusCode: 415,
+        body: JSON.stringify({
+          message: 'success registration',
+        }),
+      };
     }
   }
 
