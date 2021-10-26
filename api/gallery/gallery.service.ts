@@ -1,19 +1,16 @@
-import { GetItemCommand } from '@aws-sdk/client-dynamodb';
-import { baseErrorHandler } from '@helper/base-error-handler';
+import { GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { getEnv } from '@helper/environment';
 import { log } from '@helper/logger';
 import { imageModel } from '@models/MongoDB/image.model';
 import { dynamoClient } from '@services/dynamo-connect';
-import connect from '@services/mongo-connect';
+import { S3Service } from '@services/s3.service';
+import { PutObjectOutput } from 'aws-sdk/clients/s3';
 import { exec } from 'child_process';
-import * as fs from 'fs';
 import * as jwt from 'jsonwebtoken';
 import { GalleryObject } from './gallery.inteface';
 
 export class GalleryService {
   async checkFilterAndFindInDb(event) {
-    log(event.queryStringParameters.page);
-    log(event.queryStringParameters.limit);
     const pageNumber = Number(event.queryStringParameters.page);
     const limit = Number(event.queryStringParameters.limit);
     const userIdFromRequest = await this.getUserIdFromToken(event);
@@ -21,18 +18,19 @@ export class GalleryService {
 
     let objectTotalAndImage;
     let result;
-    let img;
+    let total;
 
     if (event.queryStringParameters.filter === 'All') {
       objectTotalAndImage = await this.getImageForResponse__ForFilterAll(userIdFromRequest, pageNumber, limit);
-      img = objectTotalAndImage.total;
+      total = objectTotalAndImage.total;
       result = objectTotalAndImage.result;
     } else {
       objectTotalAndImage = await this.getImageForResponse__ForFilterMyImage(userIdFromRequest, pageNumber, limit);
-      img = objectTotalAndImage.total;
+      total = objectTotalAndImage.total;
       result = objectTotalAndImage.result;
     }
-    return { result: result, img: img };
+    log('filterResult=' + JSON.stringify(result));
+    return { result: result, img: total };
   }
 
   async getImageForResponse__ForFilterAll(userIdFromRequest: string, pageNumber: number, limit: number) {
@@ -49,28 +47,40 @@ export class GalleryService {
       },
     };
     const allImgFromDynamo = await dynamoClient.send(new GetItemCommand(all_Images));
-    const myImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
-    const allArrayPath = myImgFromDynamo.Item!.object.SS;
-    let myArrayPath = allImgFromDynamo.Item!.object.SS;
-    if (myArrayPath === undefined) myArrayPath = [];
-    const contArray = allArrayPath!.concat(myArrayPath!);
+    const userImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
+    let allArrayPath = [];
+    let userArrayPath = [];
+
+    if (!userImgFromDynamo.Item!.imageObject) {
+      userArrayPath = [];
+    } else {
+      for (const item of userImgFromDynamo.Item!.imageObject.L!) {
+        // @ts-ignore
+        userArrayPath.push(item.L[1]);
+      }
+    }
+
+
+    if (!allImgFromDynamo.Item!.imageObject) {
+      allArrayPath = [];
+    } else {
+      for (const item of allImgFromDynamo.Item!.imageObject.L!) {
+        // @ts-ignore
+        allArrayPath.push(item.L[1]);
+      }
+    }
+
+    const contArray = allArrayPath!.concat(userArrayPath!);
+
     const total = Math.ceil(Number(contArray.length) / limit);
     const skip = Number((pageNumber - 1) * limit);
     let limitCounter = 0;
-    let result = [];
+    const result = [];
     for (let i = skip; limitCounter < limit && i < contArray.length; i++) {
       limitCounter++;
+      // @ts-ignore
       result.push(contArray[i]);
     }
-
-    // const imageFromDb = await imageMßodel
-    //   .find({
-    //     $or: [{ userId: userIdFromRequest }, { userId: '615aae0509d876c365438bf0' }],
-    //   })
-    //   .lean()
-    //   .skip(Number((pageNumber - 1) * limit))
-    //   .limit(limit);
-
     return { result: result, total: total };
   }
 
@@ -81,36 +91,29 @@ export class GalleryService {
         email: { S: userIdFromRequest },
       },
     };
-    const allImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
-    let myArrayPath = allImgFromDynamo.Item!.object.SS;
-    log(myArrayPath);
-    if (myArrayPath === undefined) myArrayPath = [];
-    const total = Math.ceil(Number(myArrayPath.length) / limit);
+    const userImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
+    let userArrayPath = [];
+
+    if (!userImgFromDynamo.Item!.imageObject) {
+      userArrayPath = [];
+    } else {
+      for (const item of userImgFromDynamo.Item!.imageObject.L!) {
+        // @ts-ignore
+        userArrayPath.push(item.L[1]);
+      }
+    }
+    log(userArrayPath);
+    const total = Math.ceil(Number(userArrayPath.length) / limit);
     const skip = Number((pageNumber - 1) * limit);
     let limitCounter = 0;
-    let result = [];
-    for (let i = skip; limitCounter < limit && i < myArrayPath.length; i++) {
+    const result = [];
+    for (let i = skip; limitCounter < limit && i < userArrayPath.length; i++) {
       limitCounter++;
-      result.push(myArrayPath[i]);
+      // @ts-ignore
+      result.push(userArrayPath[i]);
     }
     log(result);
     return { result: result, total: total };
-  }
-
-  async getImageForTotal__ForFilterAll(userIdFromRequest: string) {
-    const imgForTotal = await imageModel
-      .find({
-        $or: [{ userId: userIdFromRequest }, { userId: '615aae0509d876c365438bf0' }],
-      })
-      .lean();
-
-    return imgForTotal;
-  }
-
-  async getImageForTotal__ForFilterMyImage(userIdFromRequest: string) {
-    const imgForTotal = await imageModel.find({ userId: userIdFromRequest }).lean();
-    log('imgForTotal=' + imgForTotal);
-    return imgForTotal;
   }
 
   async createGalleryObject(event, dbResult): Promise<GalleryObject> {
@@ -144,28 +147,43 @@ export class GalleryService {
         userIdFromToken = decoded.id;
       });
     }
-    return userIdFromToken.S;
+    return userIdFromToken;
   }
 
-  async saveImgInDb(event, parseEvent): Promise<void> {
-    const connectToMongo = connect();
-    console.log(connectToMongo);
-    const userId = await this.getUserIdFromToken(event);
-    const image = new imageModel({
-      path: `/img/` + parseEvent.img.filename,
-      metadata: await this.fileMetadata(
-        `/Users/pm/Desktop/Astra/projects/module3/part1/sls/flo.sls/img/` + parseEvent.img.filename
-      ),
-      userId: userId,
-    });
-
-    const result = this.customInsertOne(image);
-
-    if (result) {
-      console.log('img was add');
-    } else {
-      console.log('img exist');
-    }
+  async saveImgInDb(event, parseEvent, s3URL): Promise<void> {
+    const userEmail = await this.getUserIdFromToken(event);
+    const newImage = {
+      TableName: 'Gallery',
+      Key: {
+        email: { S: userEmail },
+      },
+      UpdateExpression: 'SET #imageObject = :o',
+      ExpressionAttributeNames: {
+        '#imageObject': 'imageObject',
+      },
+      ExpressionAttributeValues: {
+        ':o': {
+          L: [
+            {
+              L: [
+                {
+                  L: [
+                    { S: `${parseEvent.img.filename}` },
+                    { S: `${parseEvent.img.contentType}` },
+                    { S: `${event.headers['Content-Length']}` },
+                  ],
+                },
+                {
+                  S: `${s3URL.ETag}`,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    };
+    const res = await dynamoClient.send(new UpdateItemCommand(newImage));
+    log(res);
   }
 
   async fileMetadata(filePath: string): Promise<any> {
@@ -215,23 +233,22 @@ export class GalleryService {
     return status;
   }
 
-  trySaveToDir(imageName: string, Image: Buffer): void {
-    fs.writeFile(
-      `/Users/pm/Desktop/Astra/projects/module3/part1/sls/flo.sls/img/${imageName}`,
-      Image,
-      { flag: 'wx' },
-      (err) => {
-        if (err) {
-          log(err);
-          baseErrorHandler(err);
-        }
-      }
+  async trySaveToS3(parseEvent) /*: Promise<PutObjectOutput>*/ {
+    const s3 = new S3Service();
+    log('ParseEvent= ' + JSON.stringify(parseEvent.headers));
+    const result = await s3.put(
+      `${parseEvent.img.filename}`,
+      parseEvent.img.content,
+      'kalinichenko',
+      parseEvent.img.contentType
     );
+    log('S3 result= ' + result);
+    return result;
   }
 
-  trySaveToMongoDb(event: any, parseEvent: any): void {
+  trySaveToMongoDb(event: any, parseEvent: any, s3Url): void {
     try {
-      this.saveImgInDb(event, parseEvent);
+      this.saveImgInDb(event, parseEvent, s3Url);
     } catch (err) {
       log(err);
       throw new Error('fail trySaveToMongoDb');

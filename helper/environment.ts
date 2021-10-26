@@ -17,6 +17,7 @@ const envs: Record<string, string | undefined> = {
   JOBS_TABLE_NAME: process.env.JOBS_TABLE_NAME,
   TOKEN_KEY: process.env.TOKEN_KEY,
   MONGO_URL: process.env.MONGO_KEY,
+  SALT: process.env.SALT,
 };
 
 export type Stage = 'local' | 'dev' | 'test' | 'prod';

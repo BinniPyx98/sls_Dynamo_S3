@@ -1,6 +1,20 @@
 import { AWSPartitial } from '../../types';
 
 export const getGalleryConfig: AWSPartitial = {
+  provider: {
+    environment: {},
+    iam: {
+      role: {
+        statements: [
+          {
+            Effect: 'Allow',
+            Action: ['dynamodb:DescribeTable', 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItemCommand'],
+            Resource: ['arn:aws:dynamodb:*:*:table/Gallery', 'arn:aws:dynamodb:*:*:table/Gallery/index/*'],
+          },
+        ],
+      },
+    },
+  },
   functions: {
     getGallery: {
       handler: 'api/gallery/handler.getGallery',

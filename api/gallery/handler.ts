@@ -6,13 +6,6 @@ import { GetGalleryObject } from './gallery.inteface';
 import { GalleryManager } from './gallery.manager';
 import * as multipart from 'aws-lambda-multipart-parser';
 
-/**
- * It's required if you use any external executable files like mediainfo-curl
- */
-// if (process.env.LAMBDA_TASK_ROOT) {
-//   process.env.PATH = `${process.env.PATH}:${process.env.LAMBDA_TASK_ROOT}/bin`;
-// }
-
 export const getGallery: Handler<APIGatewayLambdaEvent<GetGalleryObject>, any> = async (event) => {
   log(event);
 
@@ -38,10 +31,8 @@ export const getGallery: Handler<APIGatewayLambdaEvent<GetGalleryObject>, any> =
   }
 };
 
-let imageName = '';
-
 export const postImageHandler: Handler<APIGatewayLambdaEvent<string>, any> = async (event) => {
-  log(event);
+  //log(event);
   const manager = new GalleryManager();
   let parseEvent;
   try {
@@ -55,10 +46,9 @@ export const postImageHandler: Handler<APIGatewayLambdaEvent<string>, any> = asy
       }),
     };
   }
-  const fileData = parseEvent.img;
-  imageName = fileData.filename;
-  manager.trySaveToDir(imageName, fileData.content);
-  manager.trySaveToMongoDb(event, parseEvent);
+  const s3Url = await manager.trySaveToS3(parseEvent);
+  log('seUrl=' + JSON.stringify(s3Url));
+  manager.trySaveToMongoDb(event, parseEvent, s3Url);
   return {
     statusCode: 200,
     body: JSON.stringify({

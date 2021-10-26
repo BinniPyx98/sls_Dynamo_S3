@@ -1,3 +1,4 @@
+import { PutObjectOutput } from 'aws-sdk/clients/s3';
 import { GalleryService } from './gallery.service';
 
 /**
@@ -30,10 +31,10 @@ export class GalleryManager {
   async createGalleryObject(event, dbResult) {
     return await this.service.createGalleryObject(event, dbResult);
   }
-  trySaveToDir(imageName, content) {
-    return this.service.trySaveToMongoDb(imageName, content);
+  async trySaveToS3(parseEvent): Promise<PutObjectOutput> {
+    return await this.service.trySaveToS3(parseEvent);
   }
-  trySaveToMongoDb(event, parseEvent) {
-    return this.service.trySaveToMongoDb(event, parseEvent);
+  trySaveToMongoDb(event, parseEvent, s3Url) {
+    return this.service.trySaveToMongoDb(event, parseEvent, s3Url);
   }
 }
