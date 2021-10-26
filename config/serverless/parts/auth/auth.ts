@@ -1,6 +1,20 @@
 import { AWSPartitial } from '../../types';
 
 export const authorizationConfig: AWSPartitial = {
+  provider: {
+    environment: {},
+    iam: {
+      role: {
+        statements: [
+          {
+            Effect: 'Allow',
+            Action: ['dynamodb:GetItem', 'dynamodb:PutItem'],
+            Resource: ['arn:aws:dynamodb:*:*:table/Gallery', 'arn:aws:dynamodb:*:*:table/Gallery/index/*'],
+          },
+        ],
+      },
+    },
+  },
   functions: {
     auth: {
       handler: 'api/auth/handler.authorization',

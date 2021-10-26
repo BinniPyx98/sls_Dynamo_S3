@@ -5,7 +5,7 @@ import { restApiCorsConfig } from './config/serverless/parts/rest-api-cors';
 import { joinParts } from './config/serverless/utils';
 
 const masterConfig: AWS = {
-  service: 'template-sls',
+  service: 'kalinichenko-sls',
   configValidationMode: 'warn',
   variablesResolutionMode: '20210326',
   unresolvedVariablesNotificationMode: 'error',

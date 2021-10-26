@@ -1,8 +1,7 @@
 import { GetItemCommand } from '@aws-sdk/client-dynamodb';
-import { log } from '@helper/logger';
 import { dynamoClient } from '@services/dynamo-connect';
 import { APIGatewayAuthorizerResult, APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
-import { RegistrationResponse, UserAuthData, UserPresenceInDbInterface } from './auth.inteface';
+import { UserAuthData, UserPresenceInDbInterface } from './auth.inteface';
 import { AuthService } from './auth.service';
 
 /**
@@ -28,7 +27,7 @@ export class AuthManager {
   //  * @param mediaInfoUrl - required data
   //  * @param mediaInfoCurlService - required services
   //  */
-  async tryRegistration(authData: UserAuthData): Promise<RegistrationResponse> {
+  async tryRegistration(authData: UserAuthData): Promise<any> {
     const userExist = await this.service.checkUserInDb(authData);
 
     if (userExist) {
@@ -42,7 +41,6 @@ export class AuthManager {
       const newUser = this.service.createNewUser(authData);
       this.service.addUserInDb(newUser);
       return {
-        statusCode: 415,
         body: JSON.stringify({
           message: 'success registration',
         }),
@@ -62,12 +60,11 @@ export class AuthManager {
     context: C
   ): Promise<APIGatewayAuthorizerResult & { context: C }> {
     const userIDFromRequest = await this.service.getUserIdFromToken(event);
-    log('userFromRequest=' + userIDFromRequest);
     const UNAUTHORIZED = new Error('Unauthorized');
+
     if (event.authorizationToken === 'error') {
       throw new Error('Internal server error');
     }
-
     if (!event.authorizationToken) {
       throw UNAUTHORIZED;
     }
@@ -79,7 +76,6 @@ export class AuthManager {
         },
       };
       const existUserInDb = await dynamoClient.send(new GetItemCommand(params));
-      log(existUserInDb);
       if (!existUserInDb) {
         throw UNAUTHORIZED;
       }

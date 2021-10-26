@@ -1,23 +1,16 @@
-import { GetItemCommand, PutItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
-import { baseErrorHandler } from '@helper/base-error-handler';
+import { GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { getEnv } from '@helper/environment';
 import { log } from '@helper/logger';
 import { imageModel } from '@models/MongoDB/image.model';
 import { dynamoClient } from '@services/dynamo-connect';
-import connect from '@services/mongo-connect';
 import { S3Service } from '@services/s3.service';
 import { PutObjectOutput } from 'aws-sdk/clients/s3';
 import { exec } from 'child_process';
-import * as fs from 'fs';
 import * as jwt from 'jsonwebtoken';
 import { GalleryObject } from './gallery.inteface';
 
 export class GalleryService {
   async checkFilterAndFindInDb(event) {
-    log('filter ok');
-
-    log(event.queryStringParameters.page);
-    log(event.queryStringParameters.limit);
     const pageNumber = Number(event.queryStringParameters.page);
     const limit = Number(event.queryStringParameters.limit);
     const userIdFromRequest = await this.getUserIdFromToken(event);
@@ -36,7 +29,7 @@ export class GalleryService {
       total = objectTotalAndImage.total;
       result = objectTotalAndImage.result;
     }
-    log('filterResult=' + result);
+    log('filterResult=' + JSON.stringify(result));
     return { result: result, img: total };
   }
 
@@ -54,28 +47,40 @@ export class GalleryService {
       },
     };
     const allImgFromDynamo = await dynamoClient.send(new GetItemCommand(all_Images));
-    const myImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
-    const allArrayPath = myImgFromDynamo.Item!.objectImg.SS;
-    let myArrayPath = allImgFromDynamo.Item!.objectImg.SS;
-    if (myArrayPath === undefined) myArrayPath = [];
-    const contArray = allArrayPath!.concat(myArrayPath!);
+    const userImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
+    let allArrayPath = [];
+    let userArrayPath = [];
+
+    if (!userImgFromDynamo.Item!.imageObject) {
+      userArrayPath = [];
+    } else {
+      for (const item of userImgFromDynamo.Item!.imageObject.L!) {
+        // @ts-ignore
+        userArrayPath.push(item.L[1]);
+      }
+    }
+
+
+    if (!allImgFromDynamo.Item!.imageObject) {
+      allArrayPath = [];
+    } else {
+      for (const item of allImgFromDynamo.Item!.imageObject.L!) {
+        // @ts-ignore
+        allArrayPath.push(item.L[1]);
+      }
+    }
+
+    const contArray = allArrayPath!.concat(userArrayPath!);
+
     const total = Math.ceil(Number(contArray.length) / limit);
     const skip = Number((pageNumber - 1) * limit);
     let limitCounter = 0;
-    let result = [];
+    const result = [];
     for (let i = skip; limitCounter < limit && i < contArray.length; i++) {
       limitCounter++;
+      // @ts-ignore
       result.push(contArray[i]);
     }
-
-    // const imageFromDb = await imageMßodel
-    //   .find({
-    //     $or: [{ userId: userIdFromRequest }, { userId: '615aae0509d876c365438bf0' }],
-    //   })
-    //   .lean()
-    //   .skip(Number((pageNumber - 1) * limit))
-    //   .limit(limit);
-
     return { result: result, total: total };
   }
 
@@ -86,36 +91,29 @@ export class GalleryService {
         email: { S: userIdFromRequest },
       },
     };
-    const allImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
-    let myArrayPath = allImgFromDynamo.Item!.objectImg.SS;
-    log(myArrayPath);
-    if (myArrayPath === undefined) myArrayPath = [];
-    const total = Math.ceil(Number(myArrayPath.length) / limit);
+    const userImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
+    let userArrayPath = [];
+
+    if (!userImgFromDynamo.Item!.imageObject) {
+      userArrayPath = [];
+    } else {
+      for (const item of userImgFromDynamo.Item!.imageObject.L!) {
+        // @ts-ignore
+        userArrayPath.push(item.L[1]);
+      }
+    }
+    log(userArrayPath);
+    const total = Math.ceil(Number(userArrayPath.length) / limit);
     const skip = Number((pageNumber - 1) * limit);
     let limitCounter = 0;
-    let result = [];
-    for (let i = skip; limitCounter < limit && i < myArrayPath.length; i++) {
+    const result = [];
+    for (let i = skip; limitCounter < limit && i < userArrayPath.length; i++) {
       limitCounter++;
-      result.push(myArrayPath[i]);
+      // @ts-ignore
+      result.push(userArrayPath[i]);
     }
     log(result);
     return { result: result, total: total };
-  }
-
-  async getImageForTotal__ForFilterAll(userIdFromRequest: string) {
-    const imgForTotal = await imageModel
-      .find({
-        $or: [{ userId: userIdFromRequest }, { userId: '615aae0509d876c365438bf0' }],
-      })
-      .lean();
-
-    return imgForTotal;
-  }
-
-  async getImageForTotal__ForFilterMyImage(userIdFromRequest: string) {
-    const imgForTotal = await imageModel.find({ userId: userIdFromRequest }).lean();
-    log('imgForTotal=' + imgForTotal);
-    return imgForTotal;
   }
 
   async createGalleryObject(event, dbResult): Promise<GalleryObject> {
@@ -154,17 +152,37 @@ export class GalleryService {
 
   async saveImgInDb(event, parseEvent, s3URL): Promise<void> {
     const userEmail = await this.getUserIdFromToken(event);
-    const newUser = {
+    const newImage = {
       TableName: 'Gallery',
       Key: {
         email: { S: userEmail },
       },
-      UpdateExpression: 'ADD objectImg :o',
+      UpdateExpression: 'SET #imageObject = :o',
+      ExpressionAttributeNames: {
+        '#imageObject': 'imageObject',
+      },
       ExpressionAttributeValues: {
-        ':o': { SS: ['testAddItem2'] },
+        ':o': {
+          L: [
+            {
+              L: [
+                {
+                  L: [
+                    { S: `${parseEvent.img.filename}` },
+                    { S: `${parseEvent.img.contentType}` },
+                    { S: `${event.headers['Content-Length']}` },
+                  ],
+                },
+                {
+                  S: `${s3URL.ETag}`,
+                },
+              ],
+            },
+          ],
+        },
       },
     };
-    const res = await dynamoClient.send(new UpdateItemCommand(newUser));
+    const res = await dynamoClient.send(new UpdateItemCommand(newImage));
     log(res);
   }
 
@@ -215,8 +233,9 @@ export class GalleryService {
     return status;
   }
 
-  async trySaveToS3(parseEvent): Promise<PutObjectOutput> {
+  async trySaveToS3(parseEvent) /*: Promise<PutObjectOutput>*/ {
     const s3 = new S3Service();
+    log('ParseEvent= ' + JSON.stringify(parseEvent.headers));
     const result = await s3.put(
       `${parseEvent.img.filename}`,
       parseEvent.img.content,

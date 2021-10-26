@@ -7,10 +7,13 @@ import * as jwt from 'jsonwebtoken';
 import { UserAuthData, UserPresenceInDbInterface } from './auth.inteface';
 import { log } from '@helper/logger';
 
+const UNAUTHORIZED = new Error('Unauthorized');
+
 export class AuthService {
   createNewUser = (authData) => {
     const [userPasswordFromQuery, userEmailFromQuery] = [authData.password, authData.email];
-    const hashPass = crypto.createHash('sha256').update(userPasswordFromQuery).digest('hex');
+    const hashPass = crypto.createHmac('sha256', getEnv('SALT')).update(userPasswordFromQuery).digest('hex');
+
     const newUser = {
       TableName: 'Gallery',
       Item: {
@@ -21,7 +24,7 @@ export class AuthService {
     return newUser;
   };
 
-  async checkUserInDb(authData: UserAuthData) /*Promise<boolean>*/ {
+  async checkUserInDb(authData: UserAuthData): Promise<any> {
     const userEmailFromQuery = authData.email;
     const params = {
       TableName: 'Gallery',
@@ -30,6 +33,7 @@ export class AuthService {
       },
     };
     const userPresenceInDb = await dynamoClient.send(new GetItemCommand(params));
+    log('check Item' + JSON.stringify(userPresenceInDb.Item));
     return userPresenceInDb.Item;
   }
 
@@ -66,14 +70,13 @@ export class AuthService {
       },
     };
     userPresenceInDb = await dynamoClient.send(new GetItemCommand(params));
-    const userEmail = userPresenceInDb.Item!.email.S;
-    log(userEmail);
     /*
      * If user presence in db check password
      */
-    const hashPass = crypto.createHash('sha256').update(userPasswordFromQuery).digest('hex');
-    if (userPresenceInDb) {
+    const hashPass = crypto.createHmac('sha256', getEnv('SALT')).update(userPasswordFromQuery).digest('hex');
+    if (userPresenceInDb.Item) {
       if (userPresenceInDb.Item.password.S === hashPass) {
+        const userEmail = userPresenceInDb.Item!.email.S;
         console.log('successful authorization');
         userPresenceInDb = {
           error: false,
@@ -81,11 +84,13 @@ export class AuthService {
             token: jwt.sign({ id: userEmail }, tokenKey),
           },
         };
+      } else {
+        throw UNAUTHORIZED;
       }
     } else {
-      userPresenceInDb = { error: true, data: { errorMessage: 'authorization error' } };
+      throw UNAUTHORIZED;
     }
-
+    log('service.checkAuthData return=' + JSON.stringify(userPresenceInDb));
     return userPresenceInDb;
   }
 
@@ -109,7 +114,7 @@ export class AuthService {
       },
       context,
     };
-
+    log('service.generatePolicy return access ' + authResponse.policyDocument.Statement[0].Effect);
     return authResponse;
   }
 }

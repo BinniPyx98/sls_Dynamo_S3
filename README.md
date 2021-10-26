@@ -80,6 +80,7 @@ function and resources and env plugin for encrypted environment variables.
    - Copy the value of variable and run the command in the root of the project
      ```
      sls env --attribute VARIABLE_NAME --value variable_value --stage your_stage --encrypt
+     
      ```
    - If you use some common variables, like
 
@@ -92,6 +93,7 @@ function and resources and env plugin for encrypted environment variables.
      local:
        <<: *common
      ```
+TOKEN_KEY: '1a2b-3c4d-5e6f-7g8h'
 
      The plugin will add this variables to all stages, but we don't want it. So after encrypting, copy encrypted value
      of the new variable, revert changes and paste it to the right place.
