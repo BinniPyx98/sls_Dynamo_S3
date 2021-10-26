@@ -1,0 +1,287 @@
+{
+	"info": {
+		"_postman_id": "38d3e01e-a4a8-426c-9422-ed47d8f21299",
+		"name": "Gallery",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Local",
+			"item": [
+				{
+					"name": "auth_Local",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\":\"asergeev@flo.team\",\n    \"password\":\"kalina777\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://c2bkiqxhga.execute-api.us-east-1.amazonaws.com/dev/auth",
+							"protocol": "https",
+							"host": [
+								"c2bkiqxhga",
+								"execute-api",
+								"us-east-1",
+								"amazonaws",
+								"com"
+							],
+							"path": [
+								"dev",
+								"auth"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "gallery_Local",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFzZXJnZWV2QGZsby50ZWFtIiwiaWF0IjoxNjM0OTE1NzIxfQ.Ji2LDfnea6bG2D1V2FWMWC57nE14JgMutBizz-s2COs",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://c2bkiqxhga.execute-api.us-east-1.amazonaws.com/dev/gallery?page=1&limit=5&filter=My",
+							"protocol": "https",
+							"host": [
+								"c2bkiqxhga",
+								"execute-api",
+								"us-east-1",
+								"amazonaws",
+								"com"
+							],
+							"path": [
+								"dev",
+								"gallery"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								},
+								{
+									"key": "filter",
+									"value": "My"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "upload_Local",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": null
+					},
+					"response": []
+				},
+				{
+					"name": "registration_Local",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\":\"testev@flo.team\",\n    \"password\":\"kalina777\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/local/registration",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"local",
+								"registration"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Prod",
+			"item": [
+				{
+					"name": "auth_AWS_Prod",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\":\"asergeev@flo.team\",\n    \"password\":\"kalina777\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://c2bkiqxhga.execute-api.us-east-1.amazonaws.com/dev/auth",
+							"protocol": "https",
+							"host": [
+								"c2bkiqxhga",
+								"execute-api",
+								"us-east-1",
+								"amazonaws",
+								"com"
+							],
+							"path": [
+								"dev",
+								"auth"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "upload_AWS_Prod",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6eyJTIjoiYXNlcmdlZXZAZmxvLnRlYW0ifSwiaWF0IjoxNjM0OTA3MjU0fQ.GnFmJLLfc4WkLA8GmQpB5FlbfKBJqnAUcF46m8QSWCw",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "img",
+									"type": "file",
+									"src": "/Users/pm/Desktop/img/te2.jpeg"
+								}
+							]
+						},
+						"url": {
+							"raw": "https://c2bkiqxhga.execute-api.us-east-1.amazonaws.com/dev/upload",
+							"protocol": "https",
+							"host": [
+								"c2bkiqxhga",
+								"execute-api",
+								"us-east-1",
+								"amazonaws",
+								"com"
+							],
+							"path": [
+								"dev",
+								"upload"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "gallery_AWS_Prod",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFzZXJnZWV2QGZsby50ZWFtIiwiaWF0IjoxNjM0OTE1NzIxfQ.Ji2LDfnea6bG2D1V2FWMWC57nE14JgMutBizz-s2COs",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://c2bkiqxhga.execute-api.us-east-1.amazonaws.com/dev/gallery?page=1&limit=5&filter=My",
+							"protocol": "https",
+							"host": [
+								"c2bkiqxhga",
+								"execute-api",
+								"us-east-1",
+								"amazonaws",
+								"com"
+							],
+							"path": [
+								"dev",
+								"gallery"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								},
+								{
+									"key": "filter",
+									"value": "My"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "registration_Prod",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\":\"testev@flo.team\",\n    \"password\":\"kalina777\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3000/local/registration",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3000",
+							"path": [
+								"local",
+								"registration"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
