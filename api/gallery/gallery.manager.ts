@@ -1,4 +1,5 @@
-import { PutObjectOutput } from 'aws-sdk/clients/s3';
+import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
+import { DatabaseResult, GetGalleryObject } from './gallery.inteface';
 import { GalleryService } from './gallery.service';
 
 /**
@@ -16,25 +17,28 @@ export class GalleryManager {
     this.service = new GalleryService();
   }
 
-  /**
-   * This method implements some feature's functionality
-   * It should validate required data
-   * It should display the main steps of the algorithm without implementation
-   * All implementation should be placed in the feature service's methods
-   * @param mediaInfoUrl - required data
-   * @param mediaInfoCurlService - required services
-   */
+  // /**
+  //  * This method implements some feature's functionality
+  //  * It should validate required data
+  //  * It should display the main steps of the algorithm without implementation
+  //  * All implementation should be placed in the feature service's methods
+  //  * @param mediaInfoUrl - required data
+  //  * @param mediaInfoCurlService - required services
+  //  */
 
-  checkFilterAndFindInDb(event) {
-    return this.service.checkFilterAndFindInDb(event);
+  async checkFilterAndFindInDb(event: APIGatewayLambdaEvent<any>): Promise<DatabaseResult> {
+    return await this.service.checkFilterAndFindInDb(event);
   }
-  async createGalleryObject(event, dbResult) {
+
+  async createGalleryObject(event: APIGatewayLambdaEvent<GetGalleryObject>, dbResult) {
     return await this.service.createGalleryObject(event, dbResult);
   }
-  async trySaveToS3(parseEvent): Promise<PutObjectOutput> {
-    return await this.service.trySaveToS3(parseEvent);
+
+  async trySaveToS3(event, parseEvent): Promise<string> {
+    return await this.service.trySaveToS3(event, parseEvent);
   }
-  trySaveToMongoDb(event, parseEvent, s3Url) {
+
+  trySaveToMongoDb(event: APIGatewayLambdaEvent<string>, parseEvent, s3Url) {
     return this.service.trySaveToMongoDb(event, parseEvent, s3Url);
   }
 }

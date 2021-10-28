@@ -1,7 +1,7 @@
 import { GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { dynamoClient } from '@services/dynamo-connect';
 import { APIGatewayAuthorizerResult, APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
-import { UserAuthData, UserPresenceInDbInterface } from './auth.inteface';
+import { UserAuthData, UserPresenceInDb } from './auth.inteface';
 import { AuthService } from './auth.service';
 
 /**
@@ -27,7 +27,7 @@ export class AuthManager {
   //  * @param mediaInfoUrl - required data
   //  * @param mediaInfoCurlService - required services
   //  */
-  async tryRegistration(authData: UserAuthData): Promise<any> {
+  async tryRegistration(authData: UserAuthData): Promise<{ statusCode?: number; body: string }> {
     const userExist = await this.service.checkUserInDb(authData);
 
     if (userExist) {
@@ -83,7 +83,7 @@ export class AuthManager {
     return this.service.generatePolicy(user, access, resource, context);
   }
 
-  async checkAuthData(authData: UserAuthData): Promise<UserPresenceInDbInterface> {
+  async checkAuthData(authData: UserAuthData): Promise<UserPresenceInDb> {
     return await this.service.checkAuthData(authData);
   }
 }

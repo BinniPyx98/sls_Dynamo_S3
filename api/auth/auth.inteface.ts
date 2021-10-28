@@ -2,7 +2,7 @@
  * This file should contain all required interfaces for the feature
  */
 
-export interface UserPresenceInDbInterface {
+export interface UserPresenceInDb {
   error: boolean;
   data: string;
 }
@@ -13,6 +13,6 @@ export interface UserAuthData {
 }
 
 export interface RegistrationResponse {
-  statusCode: number;
+  statusCode?: number;
   body: string;
 }

@@ -1,21 +1,22 @@
 import { GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { marshall } from '@aws-sdk/util-dynamodb';
 import { getEnv } from '@helper/environment';
 import { dynamoClient } from '@services/dynamo-connect';
 import { APIGatewayAuthorizerResult, APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
 import * as crypto from 'crypto';
 import * as jwt from 'jsonwebtoken';
-import { UserAuthData, UserPresenceInDbInterface } from './auth.inteface';
+import { UserAuthData, UserPresenceInDb } from './auth.inteface';
 import { log } from '@helper/logger';
 
 const UNAUTHORIZED = new Error('Unauthorized');
 
 export class AuthService {
-  createNewUser = (authData) => {
+  createNewUser = (authData: UserAuthData) => {
     const [userPasswordFromQuery, userEmailFromQuery] = [authData.password, authData.email];
     const hashPass = crypto.createHmac('sha256', getEnv('SALT')).update(userPasswordFromQuery).digest('hex');
 
     const newUser = {
-      TableName: 'Gallery',
+      TableName: 'Kalinichecko-prod-Gallery',
       Item: {
         email: { S: userEmailFromQuery },
         password: { S: hashPass },
@@ -27,7 +28,7 @@ export class AuthService {
   async checkUserInDb(authData: UserAuthData): Promise<any> {
     const userEmailFromQuery = authData.email;
     const params = {
-      TableName: 'Gallery',
+      TableName: 'Kalinichecko-prod-Gallery',
       Key: {
         email: { S: userEmailFromQuery },
       },
@@ -58,13 +59,13 @@ export class AuthService {
     return userIdFromToken;
   }
 
-  async checkAuthData(authData: UserAuthData): Promise<UserPresenceInDbInterface> {
+  async checkAuthData(authData: UserAuthData): Promise<UserPresenceInDb> {
     const tokenKey = getEnv('TOKEN_KEY');
 
     const [userPasswordFromQuery, userEmailFromQuery] = [authData.password, authData.email];
     let userPresenceInDb;
     const params = {
-      TableName: 'Gallery',
+      TableName: 'Kalinichecko-prod-Gallery',
       Key: {
         email: { S: userEmailFromQuery },
       },
@@ -90,7 +91,9 @@ export class AuthService {
     } else {
       throw UNAUTHORIZED;
     }
-    log('service.checkAuthData return=' + JSON.stringify(userPresenceInDb));
+    // log('service.checkAuthData return=' + JSON.stringify(userPresenceInDb));
+    // const testtt = JSON.stringify(marshall({ obj: [[['download.jpeg', 'image/jpeg', '7915'], 'url']] }));
+    // log('testtt=' + testtt);
     return userPresenceInDb;
   }
 

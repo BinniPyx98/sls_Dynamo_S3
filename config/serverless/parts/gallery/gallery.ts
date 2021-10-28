@@ -6,11 +6,22 @@ export const getGalleryConfig: AWSPartitial = {
     iam: {
       role: {
         statements: [
-          {
-            Effect: 'Allow',
-            Action: ['dynamodb:DescribeTable', 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItemCommand'],
-            Resource: ['arn:aws:dynamodb:*:*:table/Gallery', 'arn:aws:dynamodb:*:*:table/Gallery/index/*'],
-          },
+          //       {
+          //         Effect: 'Allow',
+          //         Action: [
+          //           'dynamodb:Query',
+          //           'dynamodb:Scan',
+          //           'dynamodb:GetItem',
+          //           'dynamodb:PutItem',
+          //           'dynamodb:DeleteItem',
+          //           'dynamodb:UpdateItem',
+          //           'dynamodb:CreateTable',
+          //         ],
+          //         Resource: [
+          //           'arn:aws:dynamodb:*:*:table/${file(env.yml):${self:provider.stage}.JOBS_TABLE_NAME}',
+          //           'arn:aws:dynamodb:*:*:table/${file(env.yml):${self:provider.stage}.JOBS_TABLE_NAME}/index/*',
+          //         ],
+          //       },
         ],
       },
     },
@@ -31,10 +42,10 @@ export const getGalleryConfig: AWSPartitial = {
             },
             response: {
               headers: {
-                'Access-Control-Allow-Origin': "'*'",
-                'Content-Type': "'application/json'",
+                'Access-Control-Allow-Origin': '\'*\'',
+                'Content-Type': '\'application/json\'',
               },
-              template: "$input.json('$')",
+              template: '$input.json(\'$\')',
             },
           },
         },
@@ -55,10 +66,10 @@ export const getGalleryConfig: AWSPartitial = {
             },
             response: {
               headers: {
-                'Access-Control-Allow-Origin': "'*'",
-                'Content-Type': "'application/json'",
+                'Access-Control-Allow-Origin': '\'*\'',
+                'Content-Type': '\'application/json\'',
               },
-              template: "$input.json('$')",
+              template: '$input.json(\'$\')',
             },
           },
         },

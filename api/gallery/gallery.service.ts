@@ -1,21 +1,21 @@
 import { GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { getEnv } from '@helper/environment';
 import { log } from '@helper/logger';
+import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
 import { imageModel } from '@models/MongoDB/image.model';
 import { dynamoClient } from '@services/dynamo-connect';
 import { S3Service } from '@services/s3.service';
-import { PutObjectOutput } from 'aws-sdk/clients/s3';
 import { exec } from 'child_process';
 import * as jwt from 'jsonwebtoken';
-import { GalleryObject } from './gallery.inteface';
+import { DatabaseResult, GalleryObject } from './gallery.inteface';
+import { unmarshall } from '@aws-sdk/util-dynamodb';
 
 export class GalleryService {
-  async checkFilterAndFindInDb(event) {
+  async checkFilterAndFindInDb(event): Promise<DatabaseResult> {
     const pageNumber = Number(event.queryStringParameters.page);
     const limit = Number(event.queryStringParameters.limit);
     const userIdFromRequest = await this.getUserIdFromToken(event);
     log(userIdFromRequest);
-
     let objectTotalAndImage;
     let result;
     let total;
@@ -30,18 +30,22 @@ export class GalleryService {
       result = objectTotalAndImage.result;
     }
     log('filterResult=' + JSON.stringify(result));
-    return { result: result, img: total };
+    return { result: result, total: total };
   }
 
-  async getImageForResponse__ForFilterAll(userIdFromRequest: string, pageNumber: number, limit: number) {
+  async getImageForResponse__ForFilterAll(
+    userIdFromRequest: string,
+    pageNumber: number,
+    limit: number
+  ): Promise<DatabaseResult> {
     const all_Images = {
-      TableName: 'Gallery',
+      TableName: 'Kalinichecko-prod-Gallery',
       Key: {
         email: { S: 'All' },
       },
     };
     const myImages = {
-      TableName: 'Gallery',
+      TableName: 'Kalinichecko-prod-Gallery',
       Key: {
         email: { S: userIdFromRequest },
       },
@@ -59,7 +63,6 @@ export class GalleryService {
         userArrayPath.push(item.L[1]);
       }
     }
-
 
     if (!allImgFromDynamo.Item!.imageObject) {
       allArrayPath = [];
@@ -84,22 +87,27 @@ export class GalleryService {
     return { result: result, total: total };
   }
 
-  async getImageForResponse__ForFilterMyImage(userIdFromRequest: string, pageNumber: number, limit: number) {
+  async getImageForResponse__ForFilterMyImage(
+    userIdFromRequest: string,
+    pageNumber: number,
+    limit: number
+  ): Promise<DatabaseResult> {
     const myImages = {
-      TableName: 'Gallery',
+      TableName: 'Kalinichecko-prod-Gallery',
       Key: {
         email: { S: userIdFromRequest },
       },
     };
     const userImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
+    const test = unmarshall(userImgFromDynamo.Item!);
     let userArrayPath = [];
 
     if (!userImgFromDynamo.Item!.imageObject) {
       userArrayPath = [];
     } else {
-      for (const item of userImgFromDynamo.Item!.imageObject.L!) {
+      for (const item of test.imageObject) {
         // @ts-ignore
-        userArrayPath.push(item.L[1]);
+        userArrayPath.push(item[1]);
       }
     }
     log(userArrayPath);
@@ -116,7 +124,7 @@ export class GalleryService {
     return { result: result, total: total };
   }
 
-  async createGalleryObject(event, dbResult): Promise<GalleryObject> {
+  async createGalleryObject(event, dbResult: DatabaseResult): Promise<GalleryObject> {
     const pageNumber = Number(event.queryStringParameters.page);
     const limit = Number(event.queryStringParameters.limit);
     let imagePathArray: Array<string> = []; //img path array
@@ -124,6 +132,7 @@ export class GalleryService {
     const total = dbResult.total;
 
     imagePathArray = dbResult.result;
+    log('dbresult = ' + dbResult.result);
 
     const galleryObj = {
       total: total,
@@ -134,7 +143,7 @@ export class GalleryService {
     return galleryObj;
   }
 
-  async getUserIdFromToken(event): Promise<string> {
+  async getUserIdFromToken(event: APIGatewayLambdaEvent<any>): Promise<string> {
     log(event);
     const tokenKey = getEnv('TOKEN_KEY');
     let userIdFromToken;
@@ -150,14 +159,14 @@ export class GalleryService {
     return userIdFromToken;
   }
 
-  async saveImgInDb(event, parseEvent, s3URL): Promise<void> {
+  async saveImgInDb(event, parseEvent, s3URL: string): Promise<void> {
     const userEmail = await this.getUserIdFromToken(event);
     const newImage = {
       TableName: 'Gallery',
       Key: {
         email: { S: userEmail },
       },
-      UpdateExpression: 'SET #imageObject = :o',
+      UpdateExpression: 'SET #imageObject = list_append(#imageObject, :o)',
       ExpressionAttributeNames: {
         '#imageObject': 'imageObject',
       },
@@ -174,7 +183,7 @@ export class GalleryService {
                   ],
                 },
                 {
-                  S: `${s3URL.ETag}`,
+                  S: `${s3URL}`,
                 },
               ],
             },
@@ -182,6 +191,7 @@ export class GalleryService {
         },
       },
     };
+
     const res = await dynamoClient.send(new UpdateItemCommand(newImage));
     log(res);
   }
@@ -220,7 +230,7 @@ export class GalleryService {
     return result;
   }
 
-  insertImg(image) {
+  insertImg(image): boolean {
     let status;
 
     image.save(function (err, DbResult) {
@@ -233,20 +243,15 @@ export class GalleryService {
     return status;
   }
 
-  async trySaveToS3(parseEvent) /*: Promise<PutObjectOutput>*/ {
+  async trySaveToS3(event: APIGatewayLambdaEvent<any>, parseEvent): Promise<string> {
+    const userEmail = await this.getUserIdFromToken(event);
     const s3 = new S3Service();
-    log('ParseEvent= ' + JSON.stringify(parseEvent.headers));
-    const result = await s3.put(
-      `${parseEvent.img.filename}`,
-      parseEvent.img.content,
-      'kalinichenko',
-      parseEvent.img.contentType
-    );
-    log('S3 result= ' + result);
-    return result;
+    const url = s3.getPreSignedPutUrl(userEmail + '/', 'kalinichenko');
+    log(url);
+    return url;
   }
 
-  trySaveToMongoDb(event: any, parseEvent: any, s3Url): void {
+  trySaveToMongoDb(event: APIGatewayLambdaEvent<any>, parseEvent: any, s3Url): void {
     try {
       this.saveImgInDb(event, parseEvent, s3Url);
     } catch (err) {

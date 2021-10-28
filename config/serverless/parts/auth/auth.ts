@@ -6,11 +6,22 @@ export const authorizationConfig: AWSPartitial = {
     iam: {
       role: {
         statements: [
-          {
-            Effect: 'Allow',
-            Action: ['dynamodb:GetItem', 'dynamodb:PutItem'],
-            Resource: ['arn:aws:dynamodb:*:*:table/Gallery', 'arn:aws:dynamodb:*:*:table/Gallery/index/*'],
-          },
+          //       {
+          //         Effect: 'Allow',
+          //         Action: [
+          //           'dynamodb:Query',
+          //           'dynamodb:Scan',
+          //           'dynamodb:GetItem',
+          //           'dynamodb:PutItem',
+          //           'dynamodb:DeleteItem',
+          //           'dynamodb:UpdateItem',
+          //           'dynamodb:CreateTable',
+          //         ],
+          //         Resource: [
+          //           'arn:aws:dynamodb:*:*:table/${file(env.yml):${self:provider.stage}.JOBS_TABLE_NAME}',
+          //           'arn:aws:dynamodb:*:*:table/${file(env.yml):${self:provider.stage}.JOBS_TABLE_NAME}/index/*',
+          //         ],
+          //       },
         ],
       },
     },

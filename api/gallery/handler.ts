@@ -2,11 +2,11 @@ import { errorHandler } from '@helper/http-api/error-handler';
 import { log } from '@helper/logger';
 import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
 import { Handler } from 'aws-lambda';
-import { GetGalleryObject } from './gallery.inteface';
+import { ResolveObject } from './gallery.inteface';
 import { GalleryManager } from './gallery.manager';
 import * as multipart from 'aws-lambda-multipart-parser';
 
-export const getGallery: Handler<APIGatewayLambdaEvent<GetGalleryObject>, any> = async (event) => {
+export const getGallery: Handler<APIGatewayLambdaEvent<any>, ResolveObject> = async (event) => {
   log(event);
 
   try {
@@ -31,8 +31,8 @@ export const getGallery: Handler<APIGatewayLambdaEvent<GetGalleryObject>, any> =
   }
 };
 
-export const postImageHandler: Handler<APIGatewayLambdaEvent<string>, any> = async (event) => {
-  //log(event);
+export const postImageHandler: Handler<APIGatewayLambdaEvent<any>, ResolveObject> = async (event) => {
+  log(event);
   const manager = new GalleryManager();
   let parseEvent;
   try {
@@ -46,8 +46,7 @@ export const postImageHandler: Handler<APIGatewayLambdaEvent<string>, any> = asy
       }),
     };
   }
-  const s3Url = await manager.trySaveToS3(parseEvent);
-  log('seUrl=' + JSON.stringify(s3Url));
+  const s3Url = await manager.trySaveToS3(event, parseEvent);
   manager.trySaveToMongoDb(event, parseEvent, s3Url);
   return {
     statusCode: 200,

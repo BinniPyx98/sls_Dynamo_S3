@@ -14,3 +14,12 @@ export interface GetGalleryObject {
     objects: Array<string>;
   };
 }
+
+export interface ResolveObject {
+  statusCode: number;
+  body: string;
+}
+export interface DatabaseResult {
+  result: Array<string>;
+  total: number;
+}
