@@ -156,7 +156,7 @@ export class GalleryService {
     return userIdFromToken;
   }
 
-  async updateStatus(userEmail, imageUrl) {
+  async updateStatus(userEmail: string, imageUrl: string):Promise<void> {
     const myImages = {
       TableName: 'Kalinichecko-prod-Gallery',
       Key: {
@@ -236,9 +236,7 @@ export class GalleryService {
                 {
                   L: [{ S: `${metadata.filename}` }, { S: `${metadata.contentType}` }, { S: `${metadata.size}` }],
                 },
-                // {
-                //   S: `${s3URL}`,
-                // },
+
                 {
                   S: 'OPEN',
                 },
@@ -252,35 +250,6 @@ export class GalleryService {
     const res = await dynamoClient.send(new UpdateItemCommand(newImage));
     log(res);
   }
-
-  // async fileMetadata(filePath: string): Promise<any> {
-  //   exec(`mdls ${filePath}`, (error, stdout, stderr) => {
-  //     if (error) {
-  //       console.error(`error: ${error.message}`);
-  //       return;
-  //     }
-  //
-  //     if (stderr) {
-  //       console.error(`stderr: ${stderr}`);
-  //       return;
-  //     }
-  //
-  //     return stdout;
-  //   });
-  // }
-  // insertImg(image): boolean {
-  //   let status;
-  //
-  //   image.save(function (err, DbResult) {
-  //     if (err) {
-  //       log(err);
-  //       status = false;
-  //     }
-  //     status = true;
-  //   });
-  //   return status;
-  // }
-
   async getUrlForUploadToS3(event, metadata: Metadata): Promise<string> {
     const userEmail = await this.getUserIdFromToken(event);
     const s3 = new S3Service();
@@ -288,13 +257,4 @@ export class GalleryService {
     log(url);
     return url;
   }
-
-  // trySaveToMongoDb(event, parseEvent: any, s3Url): void {
-  //   try {
-  //     this.saveImgInDb(event, parseEvent, s3Url);
-  //   } catch (err) {
-  //     log(err);
-  //     throw new Error('fail trySaveToMongoDb');
-  //   }
-  // }
 }

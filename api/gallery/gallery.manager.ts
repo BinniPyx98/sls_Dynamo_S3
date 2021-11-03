@@ -33,7 +33,7 @@ export class GalleryManager {
     return await this.service.checkFilterAndFindInDb(event);
   }
 
-  async createGalleryObject(event: APIGatewayLambdaEvent<GetGalleryObject>, dbResult) {
+  async createGalleryObject(event: APIGatewayLambdaEvent<GetGalleryObject>, dbResult: DatabaseResult) {
     return await this.service.createGalleryObject(event, dbResult);
   }
 
@@ -41,10 +41,10 @@ export class GalleryManager {
     return await this.service.getUrlForUploadToS3(event, metadata);
   }
 
-  saveImgMetadata(event: APIGatewayLambdaEvent<string>, metadata: Metadata) {
+  saveImgMetadata(event: APIGatewayLambdaEvent<string>, metadata: Metadata): Promise<void> {
     return this.service.saveImgMetadata(event, metadata);
   }
-  updateStatus(userEmail, imageTagInS3) {
+  updateStatus(userEmail: string, imageTagInS3: string): Promise<void> {
     const s3 = new S3Service();
     log('imageTagInS3 in manager updateStatus =', imageTagInS3);
     const imageUrl = s3.getPreSignedGetUrl(imageTagInS3, getEnv('S3_NAME')).split('?')[0];
