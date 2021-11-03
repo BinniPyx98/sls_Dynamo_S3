@@ -59,7 +59,7 @@ export class GalleryService {
     } else {
       for (const item of userImgFromDynamo.Item!.imageObject.L!) {
         // @ts-ignore
-        userArrayPath.push(item.L[2]);
+        userArrayPath.push(item.L[2].S);
       }
     }
 
@@ -68,7 +68,7 @@ export class GalleryService {
     } else {
       for (const item of allImgFromDynamo.Item!.imageObject.L!) {
         // @ts-ignore
-        allArrayPath.push(item.L[2]);
+        allArrayPath.push(item.L[2].S);
       }
     }
 
@@ -156,7 +156,7 @@ export class GalleryService {
     return userIdFromToken;
   }
 
-  async updateStatus(userEmail, imageTagInS3) {
+  async updateStatus(userEmail, imageUrl) {
     const myImages = {
       TableName: 'Kalinichecko-prod-Gallery',
       Key: {
@@ -204,7 +204,7 @@ export class GalleryService {
         ':o': {
           L: [
             {
-              S: `${imageTagInS3}`,
+              S: `${imageUrl}`,
             },
           ],
         },
