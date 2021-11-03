@@ -59,7 +59,7 @@ export class GalleryService {
     } else {
       for (const item of userImgFromDynamo.Item!.imageObject.L!) {
         // @ts-ignore
-        userArrayPath.push(item.L[1]);
+        userArrayPath.push(item.L[2]);
       }
     }
 
@@ -68,7 +68,7 @@ export class GalleryService {
     } else {
       for (const item of allImgFromDynamo.Item!.imageObject.L!) {
         // @ts-ignore
-        allArrayPath.push(item.L[1]);
+        allArrayPath.push(item.L[2]);
       }
     }
 
@@ -106,7 +106,7 @@ export class GalleryService {
     } else {
       for (const item of unmarshallImagePathArray.imageObject) {
         // @ts-ignore
-        userArrayPath.push(item[1]);
+        userArrayPath.push(item[2]);
       }
     }
     log(userArrayPath);
@@ -173,7 +173,7 @@ export class GalleryService {
     lastImage--;
     log('last image index = ' + lastImage);
     log('userEmail in function updateStatus = ' + userEmail);
-    const newImage = {
+    const newStatus = {
       TableName: 'Kalinichecko-prod-Gallery',
       Key: {
         email: { S: userEmail },
@@ -186,14 +186,35 @@ export class GalleryService {
       ExpressionAttributeValues: {
         ':o': {
           S: 'CLOSE',
-          S: `${imageTagInS3}`,
         },
       },
       ReturnValues: 'UPDATED_NEW',
     };
+    const addS3Url = {
+      TableName: 'Kalinichecko-prod-Gallery',
+      Key: {
+        email: { S: userEmail },
+      },
+      //UpdateExpression: 'SET #imageObject = list_append(#imageObject, :o)',
+      UpdateExpression: `SET #imageObject[${lastImage}] = list_append(#imageObject[${lastImage}], :o)`,
+      ExpressionAttributeNames: {
+        '#imageObject': 'imageObject',
+      },
+      ExpressionAttributeValues: {
+        ':o': {
+          L: [
+            {
+              S: `${imageTagInS3}`,
+            },
+          ],
+        },
+      },
+    };
+    const newStatusResponse = await dynamoClient.send(new UpdateItemCommand(newStatus));
+    const addS3UrlResponse = await dynamoClient.send(new UpdateItemCommand(addS3Url));
 
-    const res = await dynamoClient.send(new UpdateItemCommand(newImage));
-    log(res);
+    log(newStatusResponse);
+    log(addS3UrlResponse);
   }
   async saveImgMetadata(event, metadata: Metadata): Promise<void> {
     const userEmail = await this.getUserIdFromToken(event);
