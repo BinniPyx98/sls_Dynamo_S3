@@ -49,7 +49,7 @@ export class AuthManager {
   }
 
   getUserIdFromToken(event: APIGatewayTokenAuthorizerEvent): Promise<string> {
-    return this.service.getUserIdFromToken(event);
+    return this.service.getUserIdFromTokenForAuthorizer(event);
   }
 
   async generatePolicy<C extends APIGatewayAuthorizerResult['context']>(
@@ -59,7 +59,7 @@ export class AuthManager {
     resource: string,
     context: C
   ): Promise<APIGatewayAuthorizerResult & { context: C }> {
-    const userIDFromRequest = await this.service.getUserIdFromToken(event);
+    const userIDFromRequest = await this.service.getUserIdFromTokenForAuthorizer(event);
     const UNAUTHORIZED = new Error('Unauthorized');
 
     if (event.authorizationToken === 'error') {
@@ -70,7 +70,7 @@ export class AuthManager {
     }
     if (event.authorizationToken) {
       const params = {
-        TableName: 'Gallery',
+        TableName: 'Kalinichecko-prod-Gallery',
         Key: {
           email: { S: userIDFromRequest },
         },

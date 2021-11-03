@@ -23,3 +23,8 @@ export interface DatabaseResult {
   result: Array<string>;
   total: number;
 }
+export interface Metadata {
+  filename: string;
+  size: number;
+  contentType: string;
+}

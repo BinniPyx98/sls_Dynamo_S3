@@ -1,13 +1,10 @@
 import { GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { getEnv } from '@helper/environment';
 import { log } from '@helper/logger';
-import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
-import { imageModel } from '@models/MongoDB/image.model';
 import { dynamoClient } from '@services/dynamo-connect';
 import { S3Service } from '@services/s3.service';
-import { exec } from 'child_process';
 import * as jwt from 'jsonwebtoken';
-import { DatabaseResult, GalleryObject } from './gallery.inteface';
+import { DatabaseResult, GalleryObject, Metadata } from './gallery.inteface';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 
 export class GalleryService {
@@ -29,7 +26,7 @@ export class GalleryService {
       total = objectTotalAndImage.total;
       result = objectTotalAndImage.result;
     }
-    log('filterResult=' + JSON.stringify(result));
+    //log('filterResult=' + JSON.stringify(result));
     return { result: result, total: total };
   }
 
@@ -54,8 +51,10 @@ export class GalleryService {
     const userImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
     let allArrayPath = [];
     let userArrayPath = [];
-
-    if (!userImgFromDynamo.Item!.imageObject) {
+    const presentUserImageObject = Boolean(userImgFromDynamo.Item?.imageObject);
+    const presentAllImageObject = Boolean(allImgFromDynamo.Item?.imageObject);
+    log('test user and All' + presentAllImageObject + ' ' + presentUserImageObject);
+    if (!presentUserImageObject) {
       userArrayPath = [];
     } else {
       for (const item of userImgFromDynamo.Item!.imageObject.L!) {
@@ -64,7 +63,7 @@ export class GalleryService {
       }
     }
 
-    if (!allImgFromDynamo.Item!.imageObject) {
+    if (!presentAllImageObject) {
       allArrayPath = [];
     } else {
       for (const item of allImgFromDynamo.Item!.imageObject.L!) {
@@ -73,7 +72,7 @@ export class GalleryService {
       }
     }
 
-    const contArray = allArrayPath!.concat(userArrayPath!);
+    const contArray = allArrayPath.concat(userArrayPath);
 
     const total = Math.ceil(Number(contArray.length) / limit);
     const skip = Number((pageNumber - 1) * limit);
@@ -99,13 +98,13 @@ export class GalleryService {
       },
     };
     const userImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
-    const test = unmarshall(userImgFromDynamo.Item!);
+    const unmarshallImagePathArray = unmarshall(userImgFromDynamo.Item!);
     let userArrayPath = [];
 
     if (!userImgFromDynamo.Item!.imageObject) {
       userArrayPath = [];
     } else {
-      for (const item of test.imageObject) {
+      for (const item of unmarshallImagePathArray.imageObject) {
         // @ts-ignore
         userArrayPath.push(item[1]);
       }
@@ -142,9 +141,7 @@ export class GalleryService {
 
     return galleryObj;
   }
-
-  async getUserIdFromToken(event: APIGatewayLambdaEvent<any>): Promise<string> {
-    log(event);
+  async getUserIdFromToken(event): Promise<string> {
     const tokenKey = getEnv('TOKEN_KEY');
     let userIdFromToken;
     const bearerHeader = event.headers.Authorization;
@@ -159,14 +156,54 @@ export class GalleryService {
     return userIdFromToken;
   }
 
-  async saveImgInDb(event, parseEvent, s3URL: string): Promise<void> {
+  async updateStatus(userEmail, imageTagInS3) {
+    const myImages = {
+      TableName: 'Kalinichecko-prod-Gallery',
+      Key: {
+        email: { S: userEmail },
+      },
+    };
+    const allImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
+    const unmarshallImagePathArray = unmarshall(allImgFromDynamo.Item!);
+    let lastImage = 0;
+    for (const item of unmarshallImagePathArray.imageObject) {
+      // @ts-ignore
+      lastImage++;
+    }
+    lastImage--;
+    log('last image index = ' + lastImage);
+    log('userEmail in function updateStatus = ' + userEmail);
+    const newImage = {
+      TableName: 'Kalinichecko-prod-Gallery',
+      Key: {
+        email: { S: userEmail },
+      },
+      //UpdateExpression: 'SET #imageObject = list_append(#imageObject, :o)',
+      UpdateExpression: `SET #imageObject[${lastImage}][${1}] = :o`,
+      ExpressionAttributeNames: {
+        '#imageObject': 'imageObject',
+      },
+      ExpressionAttributeValues: {
+        ':o': {
+          S: 'CLOSE',
+          S: `${imageTagInS3}`,
+        },
+      },
+      ReturnValues: 'UPDATED_NEW',
+    };
+
+    const res = await dynamoClient.send(new UpdateItemCommand(newImage));
+    log(res);
+  }
+  async saveImgMetadata(event, metadata: Metadata): Promise<void> {
     const userEmail = await this.getUserIdFromToken(event);
     const newImage = {
-      TableName: 'Gallery',
+      TableName: 'Kalinichecko-prod-Gallery',
       Key: {
         email: { S: userEmail },
       },
       UpdateExpression: 'SET #imageObject = list_append(#imageObject, :o)',
+      //UpdateExpression: 'SET #imageObject = :o',
       ExpressionAttributeNames: {
         '#imageObject': 'imageObject',
       },
@@ -176,14 +213,13 @@ export class GalleryService {
             {
               L: [
                 {
-                  L: [
-                    { S: `${parseEvent.img.filename}` },
-                    { S: `${parseEvent.img.contentType}` },
-                    { S: `${event.headers['Content-Length']}` },
-                  ],
+                  L: [{ S: `${metadata.filename}` }, { S: `${metadata.contentType}` }, { S: `${metadata.size}` }],
                 },
+                // {
+                //   S: `${s3URL}`,
+                // },
                 {
-                  S: `${s3URL}`,
+                  S: 'OPEN',
                 },
               ],
             },
@@ -196,67 +232,48 @@ export class GalleryService {
     log(res);
   }
 
-  async fileMetadata(filePath: string): Promise<any> {
-    exec(`mdls ${filePath}`, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`error: ${error.message}`);
-        return;
-      }
+  // async fileMetadata(filePath: string): Promise<any> {
+  //   exec(`mdls ${filePath}`, (error, stdout, stderr) => {
+  //     if (error) {
+  //       console.error(`error: ${error.message}`);
+  //       return;
+  //     }
+  //
+  //     if (stderr) {
+  //       console.error(`stderr: ${stderr}`);
+  //       return;
+  //     }
+  //
+  //     return stdout;
+  //   });
+  // }
+  // insertImg(image): boolean {
+  //   let status;
+  //
+  //   image.save(function (err, DbResult) {
+  //     if (err) {
+  //       log(err);
+  //       status = false;
+  //     }
+  //     status = true;
+  //   });
+  //   return status;
+  // }
 
-      if (stderr) {
-        console.error(`stderr: ${stderr}`);
-        return;
-      }
-
-      return stdout;
-    });
-  }
-
-  customInsertOne(image): boolean {
-    let result;
-
-    imageModel.findOne({ path: image.path }, (err, doc) => {
-      if (err) {
-        log(err);
-      } else {
-        if (!doc) {
-          result = this.insertImg(image);
-        } else {
-          log({ errorMessage: 'img exist in db' });
-          result = false;
-        }
-      }
-    });
-    return result;
-  }
-
-  insertImg(image): boolean {
-    let status;
-
-    image.save(function (err, DbResult) {
-      if (err) {
-        log(err);
-        status = false;
-      }
-      status = true;
-    });
-    return status;
-  }
-
-  async trySaveToS3(event: APIGatewayLambdaEvent<any>, parseEvent): Promise<string> {
+  async getUrlForUploadToS3(event, metadata: Metadata): Promise<string> {
     const userEmail = await this.getUserIdFromToken(event);
     const s3 = new S3Service();
-    const url = s3.getPreSignedPutUrl(userEmail + '/', 'kalinichenko');
+    const url = s3.getPreSignedPutUrl(userEmail + '/' + metadata.filename, getEnv('S3_NAME'));
     log(url);
     return url;
   }
 
-  trySaveToMongoDb(event: APIGatewayLambdaEvent<any>, parseEvent: any, s3Url): void {
-    try {
-      this.saveImgInDb(event, parseEvent, s3Url);
-    } catch (err) {
-      log(err);
-      throw new Error('fail trySaveToMongoDb');
-    }
-  }
+  // trySaveToMongoDb(event, parseEvent: any, s3Url): void {
+  //   try {
+  //     this.saveImgInDb(event, parseEvent, s3Url);
+  //   } catch (err) {
+  //     log(err);
+  //     throw new Error('fail trySaveToMongoDb');
+  //   }
+  // }
 }

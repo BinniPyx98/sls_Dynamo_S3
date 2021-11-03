@@ -10,7 +10,14 @@ export const s3Config: AWSPartitial = {
         statements: [
           {
             Effect: 'Allow',
-            Action: ['s3:PutObject', 's3:GetObject', 's3:getResourceUrl', 's3:getPreSignedPutUrl'],
+            Action: [
+              's3:PutObject',
+              's3:GetObject',
+              's3:getResourceUrl',
+              's3:getPreSignedPutUrl',
+              's3:PutObjectAsl',
+              's3:CreateBucket',
+            ],
             Resource: [
               'arn:aws:dynamodb:*:*:table/${file(env.yml):${self:provider.stage}.S3_NAME}',
               'arn:aws:dynamodb:*:*:table/${file(env.yml):${self:provider.stage}.S3_NAME}/index/*',
@@ -31,7 +38,16 @@ export const s3Config: AWSPartitial = {
           //"AnalyticsConfigurations" : [ AnalyticsConfiguration, ... ],
           //"BucketEncryption" : BucketEncryption,
           BucketName: '${self:custom.S3Names.S3Bucket.${self:provider.stage}}',
-          // "CorsConfiguration" : CorsConfiguration,
+          CorsConfiguration: {
+            CorsRules: [
+              {
+                AllowedHeaders: ['*'],
+                AllowedMethods: ['PUT', 'POST', 'DELETE'],
+                AllowedOrigins: ['*'],
+                ExposeHeaders: [],
+              },
+            ],
+          },
           // "IntelligentTieringConfigurations" : [ IntelligentTieringConfiguration, ... ],
           // "InventoryConfigurations" : [ InventoryConfiguration, ... ],
           // "LifecycleConfiguration" : LifecycleConfiguration,
@@ -53,10 +69,10 @@ export const s3Config: AWSPartitial = {
   custom: {
     S3Names: {
       S3Bucket: {
-        local: 'Kalinichecko-local-S3Bucket',
-        dev: 'Kalinichecko-dev-S3Bucket',
-        test: 'Kalinichecko-test-S3Bucket',
-        prod: 'Kalinichecko-prod-S3Bucket',
+        local: 'kalinichecko-local-s3bucket',
+        dev: 'kalinichecko-dev-s3bucket',
+        test: 'kalinichecko-test-S3bucket',
+        prod: 'kalinichecko-prod-s3bucket',
       },
     },
   },

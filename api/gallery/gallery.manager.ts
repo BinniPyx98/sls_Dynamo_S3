@@ -1,5 +1,5 @@
 import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
-import { DatabaseResult, GetGalleryObject } from './gallery.inteface';
+import { DatabaseResult, GetGalleryObject, Metadata } from './gallery.inteface';
 import { GalleryService } from './gallery.service';
 
 /**
@@ -34,11 +34,14 @@ export class GalleryManager {
     return await this.service.createGalleryObject(event, dbResult);
   }
 
-  async trySaveToS3(event, parseEvent): Promise<string> {
-    return await this.service.trySaveToS3(event, parseEvent);
+  async getUrlForUploadToS3(event, metadata: Metadata): Promise<string> {
+    return await this.service.getUrlForUploadToS3(event, metadata);
   }
 
-  trySaveToMongoDb(event: APIGatewayLambdaEvent<string>, parseEvent, s3Url) {
-    return this.service.trySaveToMongoDb(event, parseEvent, s3Url);
+  saveImgMetadata(event: APIGatewayLambdaEvent<string>, metadata: Metadata) {
+    return this.service.saveImgMetadata(event, metadata);
+  }
+  updateStatus(userEmail, imageTagInS3) {
+    return this.service.updateStatus(userEmail, imageTagInS3);
   }
 }

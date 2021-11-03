@@ -42,7 +42,7 @@ export class AuthService {
     dynamoClient.send(new PutItemCommand(newUser));
   }
 
-  async getUserIdFromToken(event: APIGatewayTokenAuthorizerEvent): Promise<string> {
+  async getUserIdFromTokenForAuthorizer(event: APIGatewayTokenAuthorizerEvent): Promise<string> {
     const tokenKey = getEnv('TOKEN_KEY');
     let userIdFromToken;
     const bearerHeader = event.authorizationToken;
@@ -60,6 +60,7 @@ export class AuthService {
   }
 
   async checkAuthData(authData: UserAuthData): Promise<UserPresenceInDb> {
+    log('checkAuthData entry');
     const tokenKey = getEnv('TOKEN_KEY');
 
     const [userPasswordFromQuery, userEmailFromQuery] = [authData.password, authData.email];
@@ -94,6 +95,7 @@ export class AuthService {
     // log('service.checkAuthData return=' + JSON.stringify(userPresenceInDb));
     // const testtt = JSON.stringify(marshall({ obj: [[['download.jpeg', 'image/jpeg', '7915'], 'url']] }));
     // log('testtt=' + testtt);
+    log('checkAuthResult return ' + Boolean(userPresenceInDb));
     return userPresenceInDb;
   }
 

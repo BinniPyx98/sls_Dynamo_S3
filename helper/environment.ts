@@ -18,6 +18,9 @@ const envs: Record<string, string | undefined> = {
   TOKEN_KEY: process.env.TOKEN_KEY,
   MONGO_URL: process.env.MONGO_KEY,
   SALT: process.env.SALT,
+  SECRETACCESSKEY: process.env.SECRETACCESSKEY,
+  ACCESSKEYID: process.env.ACCESSKEYID,
+  S3_NAME: process.env.S3_NAME,
 };
 
 export type Stage = 'local' | 'dev' | 'test' | 'prod';

@@ -19,6 +19,8 @@ export const galleryConfig: AWSPartitial = {
               'dynamodb:UpdateItem',
               'dynamodb:CreateTable',
               'dynamodb:DescribeTable',
+              'dynamodb:BatchGetItem',
+              'dynamodb:BatchWriteItem',
             ],
             Resource: [
               'arn:aws:dynamodb:*:*:table/${file(env.yml):${self:provider.stage}.GALLERY_TABLE_NAME}',
@@ -41,10 +43,6 @@ export const galleryConfig: AWSPartitial = {
               AttributeType: 'S',
             },
           ],
-          // ProvisionedThroughput: {
-          //   ReadCapacityUnits: 4,
-          //   WriteCapacityUnits: 2,
-          // },
           KeySchema: [
             {
               AttributeName: 'email',

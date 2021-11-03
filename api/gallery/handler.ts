@@ -1,10 +1,9 @@
 import { errorHandler } from '@helper/http-api/error-handler';
 import { log } from '@helper/logger';
 import { APIGatewayLambdaEvent } from '@interfaces/api-gateway-lambda.interface';
-import { Handler } from 'aws-lambda';
+import { Handler, S3Handler } from 'aws-lambda';
 import { ResolveObject } from './gallery.inteface';
 import { GalleryManager } from './gallery.manager';
-import * as multipart from 'aws-lambda-multipart-parser';
 
 export const getGallery: Handler<APIGatewayLambdaEvent<any>, ResolveObject> = async (event) => {
   log(event);
@@ -19,6 +18,11 @@ export const getGallery: Handler<APIGatewayLambdaEvent<any>, ResolveObject> = as
 
     return {
       statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Headers': 'Authorization',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': '*',
+      },
       body: JSON.stringify({
         input: result,
       }),
@@ -31,27 +35,35 @@ export const getGallery: Handler<APIGatewayLambdaEvent<any>, ResolveObject> = as
   }
 };
 
-export const postImageHandler: Handler<APIGatewayLambdaEvent<any>, ResolveObject> = async (event) => {
-  log(event);
+export const getS3Url: Handler<APIGatewayLambdaEvent<any>, any> = async (event) => {
+  const metadataFormEvent = JSON.parse(event.body);
+  const metadata = {
+    filename: metadataFormEvent.filename,
+    size: metadataFormEvent.size,
+    contentType: metadataFormEvent.contentType,
+  };
   const manager = new GalleryManager();
-  let parseEvent;
-  try {
-    parseEvent = multipart.parse(event, true);
-  } catch (err) {
-    return {
-      statusCode: 415,
-      body: JSON.stringify({
-        message: 'request have not file',
-        body: err,
-      }),
-    };
-  }
-  const s3Url = await manager.trySaveToS3(event, parseEvent);
-  manager.trySaveToMongoDb(event, parseEvent, s3Url);
+  const response = await manager.getUrlForUploadToS3(event, metadata);
+  await manager.saveImgMetadata(event, metadata);
+  log('response = ' + response);
   return {
     statusCode: 200,
-    body: JSON.stringify({
-      message: 'img save',
-    }),
+    headers: {
+      'Access-Control-Allow-Headers': 'Authorization',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': '*',
+    },
+    body: JSON.stringify(response),
   };
+};
+
+export const triggerS3Upload: S3Handler = async (event) => {
+  log(event);
+  const user = event.Records[0].s3.object.key.split('%')[0];
+  const imageTagInS3 = event.Records[0].s3.object.eTag;
+
+  const userEmail = user + '@flo.team';
+  log('userEmail = ' + userEmail);
+  const manager = new GalleryManager();
+  await manager.updateStatus(userEmail, imageTagInS3);
 };

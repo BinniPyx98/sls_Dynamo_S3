@@ -42,22 +42,23 @@ export const getGalleryConfig: AWSPartitial = {
             },
             response: {
               headers: {
-                'Access-Control-Allow-Origin': '\'*\'',
-                'Content-Type': '\'application/json\'',
+                'Access-Control-Allow-Origin': "'*'",
+                'Content-Type': "'application/json'",
+                'Access-Control-Allow-Headers': "'Authorization'",
               },
-              template: '$input.json(\'$\')',
+              template: "$input.json('$')",
             },
           },
         },
       ],
     },
-    imageUpload: {
-      handler: 'api/gallery/handler.postImageHandler',
+    getS3Url: {
+      handler: 'api/gallery/handler.getS3Url',
       memorySize: 128,
       events: [
         {
           http: {
-            path: '/upload',
+            path: '/getS3Url',
             method: 'post',
             integration: 'lambda-proxy',
             cors: true,
@@ -66,11 +67,23 @@ export const getGalleryConfig: AWSPartitial = {
             },
             response: {
               headers: {
-                'Access-Control-Allow-Origin': '\'*\'',
-                'Content-Type': '\'application/json\'',
+                'Access-Control-Allow-Origin': "'*'",
+                'Content-Type': "'application/json'",
               },
-              template: '$input.json(\'$\')',
+              template: "$input.json('$')",
             },
+          },
+        },
+      ],
+    },
+    triggerS3Upload: {
+      handler: 'api/gallery/handler.triggerS3Upload',
+      memorySize: 128,
+      events: [
+        {
+          s3: {
+            bucket: 'kalinichecko-prod-s3bucket',
+            event: 's3:ObjectCreated:*',
           },
         },
       ],

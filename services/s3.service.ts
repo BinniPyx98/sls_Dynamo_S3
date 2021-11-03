@@ -1,3 +1,4 @@
+import { getEnv } from '@helper/environment';
 import { S3 } from 'aws-sdk';
 import { log } from '@helper/logger';
 
@@ -11,10 +12,16 @@ import {
 } from 'aws-sdk/clients/s3';
 
 export class S3Service {
-  public s3 = new S3();
+  public s3 = new S3({
+    signatureVersion: 'v4',
+    region: getEnv('REGION'),
+    secretAccessKey: getEnv('SECRETACCESSKEY'),
+    accessKeyId: getEnv('ACCESSKEYID'),
+  });
 
-  public getPreSignedPutUrl(key: string, bucket: string): string {
+  public getPreSignedPutUrl(key: string, bucket: string, acl = 'public-read'): string {
     const params = {
+      ACL: acl,
       Bucket: bucket,
       Key: key,
     };
