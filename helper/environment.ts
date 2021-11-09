@@ -21,6 +21,7 @@ const envs: Record<string, string | undefined> = {
   SECRETACCESSKEY: process.env.SECRETACCESSKEY,
   ACCESSKEYID: process.env.ACCESSKEYID,
   S3_NAME: process.env.S3_NAME,
+  GALLERY_TABLE_NAME: process.env.GALLERY_TABLE_NAME,
 };
 
 export type Stage = 'local' | 'dev' | 'test' | 'prod';

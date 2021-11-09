@@ -1,6 +1,7 @@
 import type { AWS } from '@serverless/typescript';
 import { authorizationConfig } from './config/serverless/parts/auth/auth';
 import { getGalleryConfig } from './config/serverless/parts/gallery/gallery';
+import { s3Config } from './config/serverless/parts/s3/s3';
 import { galleryConfig } from './config/serverless/parts/tables/galleryTable';
 import { restApiCorsConfig } from './config/serverless/parts/rest-api-cors';
 import { joinParts } from './config/serverless/utils';

@@ -44,7 +44,6 @@ export const s3Config: AWSPartitial = {
                 AllowedHeaders: ['*'],
                 AllowedMethods: ['PUT', 'POST', 'DELETE'],
                 AllowedOrigins: ['*'],
-                ExposeHeaders: [],
               },
             ],
           },

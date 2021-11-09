@@ -60,10 +60,8 @@ export const getS3Url: Handler<APIGatewayLambdaEvent<any>, any> = async (event) 
 export const triggerS3Upload: S3Handler = async (event) => {
   log(event);
   const user = event.Records[0].s3.object.key.split('%')[0];
-  const imageTagInS3 = decodeURIComponent(event.Records[0].s3.object.key);
-  log('FileKey = ' + imageTagInS3);
-  const userEmail = user + '@flo.team';
-  log('userEmail = ' + userEmail);
+  const imageKeyInS3 = decodeURIComponent(event.Records[0].s3.object.key);
+  log('FileKey = ' + imageKeyInS3);
   const manager = new GalleryManager();
-  await manager.updateStatus(userEmail, imageTagInS3);
+  await manager.updateStatus(imageKeyInS3);
 };

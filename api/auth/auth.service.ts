@@ -16,21 +16,25 @@ export class AuthService {
     const hashPass = crypto.createHmac('sha256', getEnv('SALT')).update(userPasswordFromQuery).digest('hex');
 
     const newUser = {
-      TableName: 'Kalinichecko-prod-Gallery',
+      TableName: getEnv('GALLERY_TABLE_NAME'),
       Item: {
         email: { S: userEmailFromQuery },
         password: { S: hashPass },
       },
     };
+    log('New user success created');
     return newUser;
   };
 
   async checkUserInDb(authData: UserAuthData): Promise<any> {
     const userEmailFromQuery = authData.email;
+    const hashPass = crypto.createHmac('sha256', getEnv('SALT')).update(authData.password).digest('hex');
+
     const params = {
-      TableName: 'Kalinichecko-prod-Gallery',
+      TableName: getEnv('GALLERY_TABLE_NAME'),
       Key: {
         email: { S: userEmailFromQuery },
+        password: { S: hashPass },
       },
     };
     const userPresenceInDb = await dynamoClient.send(new GetItemCommand(params));
@@ -39,6 +43,7 @@ export class AuthService {
   }
 
   addUserInDb(newUser): void {
+    log('user in add user ' + JSON.stringify(newUser));
     dynamoClient.send(new PutItemCommand(newUser));
   }
 
@@ -64,18 +69,20 @@ export class AuthService {
     const tokenKey = getEnv('TOKEN_KEY');
 
     const [userPasswordFromQuery, userEmailFromQuery] = [authData.password, authData.email];
+    const hashPass = crypto.createHmac('sha256', getEnv('SALT')).update(userPasswordFromQuery).digest('hex');
     let userPresenceInDb;
     const params = {
-      TableName: 'Kalinichecko-prod-Gallery',
+      TableName: getEnv('GALLERY_TABLE_NAME'),
       Key: {
         email: { S: userEmailFromQuery },
+        password: { S: hashPass },
       },
     };
     userPresenceInDb = await dynamoClient.send(new GetItemCommand(params));
+    log(userPresenceInDb);
     /*
      * If user presence in db check password
      */
-    const hashPass = crypto.createHmac('sha256', getEnv('SALT')).update(userPasswordFromQuery).digest('hex');
     if (userPresenceInDb.Item) {
       if (userPresenceInDb.Item.password.S === hashPass) {
         const userEmail = userPresenceInDb.Item!.email.S;
