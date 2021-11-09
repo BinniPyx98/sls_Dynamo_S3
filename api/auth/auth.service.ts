@@ -99,9 +99,6 @@ export class AuthService {
     } else {
       throw UNAUTHORIZED;
     }
-    // log('service.checkAuthData return=' + JSON.stringify(userPresenceInDb));
-    // const testtt = JSON.stringify(marshall({ obj: [[['download.jpeg', 'image/jpeg', '7915'], 'url']] }));
-    // log('testtt=' + testtt);
     log('checkAuthResult return ' + Boolean(userPresenceInDb));
     return userPresenceInDb;
   }

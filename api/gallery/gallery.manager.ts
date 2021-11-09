@@ -42,7 +42,7 @@ export class GalleryManager {
   }
 
   async saveImgMetadata(event: APIGatewayLambdaEvent<string>, metadata: Metadata): Promise<void> {
-    return await this.service.saveImgMetadata(event, metadata);
+    return this.service.saveImgMetadata(event, metadata);
   }
   updateStatus(imageKeyInS3: string): Promise<void> {
     const s3 = new S3Service();

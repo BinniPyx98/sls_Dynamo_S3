@@ -15,8 +15,6 @@ export class S3Service {
   public s3 = new S3({
     signatureVersion: 'v4',
     region: getEnv('REGION'),
-    secretAccessKey: getEnv('SECRETACCESSKEY'),
-    accessKeyId: getEnv('ACCESSKEYID'),
   });
 
   public getPreSignedPutUrl(key: string, bucket: string, acl = 'public-read'): string {

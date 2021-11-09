@@ -74,9 +74,6 @@ export const galleryConfig: AWSPartitial = {
           ],
           BillingMode: 'PAY_PER_REQUEST',
           TableName: '${self:custom.tablesNames.GalleryTable.${self:provider.stage}}',
-          StreamSpecification: {
-            StreamViewType: 'NEW_AND_OLD_IMAGES',
-          },
         },
       },
     },

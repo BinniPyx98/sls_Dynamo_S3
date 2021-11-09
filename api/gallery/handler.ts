@@ -44,7 +44,7 @@ export const getS3Url: Handler<APIGatewayLambdaEvent<any>, any> = async (event) 
   };
   const manager = new GalleryManager();
   const response = await manager.getUrlForUploadToS3(event, metadata);
-  await manager.saveImgMetadata(event, metadata);
+  manager.saveImgMetadata(event, metadata);
   log('response = ' + response);
   return {
     statusCode: 200,
@@ -63,5 +63,5 @@ export const triggerS3Upload: S3Handler = async (event) => {
   const imageKeyInS3 = decodeURIComponent(event.Records[0].s3.object.key);
   log('FileKey = ' + imageKeyInS3);
   const manager = new GalleryManager();
-  await manager.updateStatus(imageKeyInS3);
+  manager.updateStatus(imageKeyInS3);
 };

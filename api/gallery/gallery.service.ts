@@ -218,7 +218,7 @@ export class GalleryService {
         imageStatus: 'OPEN',
       }),
     };
-    await dynamoClient.send(new PutItemCommand(newUser));
+    dynamoClient.send(new PutItemCommand(newUser));
   }
   async getUrlForUploadToS3(event, metadata: Metadata): Promise<string> {
     const userEmail = await this.getUserIdFromToken(event);
