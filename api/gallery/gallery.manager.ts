@@ -46,12 +46,11 @@ export class GalleryManager {
   }
   updateStatus(imageKeyInS3: string): Promise<void> {
     const s3 = new S3Service();
-    log('imageTagInS3 in manager updateStatus =', imageKeyInS3);
     const userEmail = imageKeyInS3.split('/')[0];
     const fileName = imageKeyInS3.split('/')[1];
     const imageUrl = s3.getPreSignedGetUrl(userEmail, getEnv('S3_NAME')).split('?')[0];
     const decodedUrl = decodeURIComponent(imageUrl);
     log('decodedUrl = ' + decodedUrl);
-    return this.service.updateStatus(userEmail, imageUrl, fileName);
+    return this.service.updateStatus(userEmail, decodedUrl, fileName);
   }
 }

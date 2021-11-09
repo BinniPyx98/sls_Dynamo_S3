@@ -33,7 +33,6 @@ export class GalleryService {
       total = objectTotalAndImage.total;
       result = objectTotalAndImage.result;
     }
-    //log('filterResult=' + JSON.stringify(result));
     return { result: result, total: total };
   }
 
@@ -200,11 +199,10 @@ export class GalleryService {
       }),
     };
     const updateStatus = await dynamoClient.send(new UpdateItemCommand(updateItem));
-    log('updateStatus = ' + updateStatus);
+    log('result function updateStatus in service = ' + updateStatus);
   }
   async saveImgMetadata(event, metadata: Metadata): Promise<void> {
     const userEmail = await this.getUserIdFromToken(event);
-    log(metadata.filename);
     const hashImage = crypto.createHmac('sha256', 'test').update(metadata.filename).digest('hex');
 
     const newUser = {
@@ -218,13 +216,14 @@ export class GalleryService {
         imageStatus: 'OPEN',
       }),
     };
-    dynamoClient.send(new PutItemCommand(newUser));
+    const result = dynamoClient.send(new PutItemCommand(newUser));
+    log('result function saveImgMetadata = ' + result);
   }
   async getUrlForUploadToS3(event, metadata: Metadata): Promise<string> {
     const userEmail = await this.getUserIdFromToken(event);
     const s3 = new S3Service();
     const url = s3.getPreSignedPutUrl(userEmail + '/' + metadata.filename, getEnv('S3_NAME'));
-    log(url);
+    log('Url for upload image, returned function getUrlForUploadToS3 =  ' + url);
     return url;
   }
 }
