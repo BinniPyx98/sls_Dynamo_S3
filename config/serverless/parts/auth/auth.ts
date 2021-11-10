@@ -6,11 +6,11 @@ export const authorizationConfig: AWSPartitial = {
     iam: {
       role: {
         statements: [
-          {
-            Effect: 'Allow',
-            Action: ['dynamodb:*'],
-            Resource: ['arn:aws:dynamodb:*:*:table/Gallery', 'arn:aws:dynamodb:*:*:table/Gallery/index/*'],
-          },
+          // {
+          //   Effect: 'Allow',
+          //   Action: ['dynamodb:*'],
+          //   Resource: ['arn:aws:dynamodb:*:*:table/Gallery', 'arn:aws:dynamodb:*:*:table/Gallery/index/*'],
+          // },
         ],
       },
     },

@@ -19,7 +19,7 @@ export class AuthService {
       TableName: getEnv('GALLERY_TABLE_NAME'),
       Item: {
         email: { S: userEmailFromQuery },
-        password: { S: hashPass },
+        Hash: { S: hashPass },
       },
     };
     log('New user success created');
@@ -34,7 +34,7 @@ export class AuthService {
       TableName: getEnv('GALLERY_TABLE_NAME'),
       Key: {
         email: { S: userEmailFromQuery },
-        password: { S: hashPass },
+        Hash: { S: hashPass },
       },
     };
     const userPresenceInDb = await dynamoClient.send(new GetItemCommand(params));
@@ -43,8 +43,9 @@ export class AuthService {
   }
 
   addUserInDb(newUser): void {
-    log('user in add user ' + JSON.stringify(newUser));
-    dynamoClient.send(new PutItemCommand(newUser));
+    log('user in function addUserInDb ' + JSON.stringify(newUser));
+    const result = dynamoClient.send(new PutItemCommand(newUser));
+    log('result of adding a new user = ' + result);
   }
 
   async getUserIdFromTokenForAuthorizer(event: APIGatewayTokenAuthorizerEvent): Promise<string> {
@@ -65,7 +66,6 @@ export class AuthService {
   }
 
   async checkAuthData(authData: UserAuthData): Promise<UserPresenceInDb> {
-    log('checkAuthData entry');
     const tokenKey = getEnv('TOKEN_KEY');
 
     const [userPasswordFromQuery, userEmailFromQuery] = [authData.password, authData.email];
@@ -75,7 +75,7 @@ export class AuthService {
       TableName: getEnv('GALLERY_TABLE_NAME'),
       Key: {
         email: { S: userEmailFromQuery },
-        password: { S: hashPass },
+        Hash: { S: hashPass },
       },
     };
     userPresenceInDb = await dynamoClient.send(new GetItemCommand(params));
@@ -84,7 +84,7 @@ export class AuthService {
      * If user presence in db check password
      */
     if (userPresenceInDb.Item) {
-      if (userPresenceInDb.Item.password.S === hashPass) {
+      if (userPresenceInDb.Item.Hash.S === hashPass) {
         const userEmail = userPresenceInDb.Item!.email.S;
         console.log('successful authorization');
         userPresenceInDb = {

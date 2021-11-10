@@ -17,7 +17,7 @@ export class S3Service {
     region: getEnv('REGION'),
   });
 
-  public getPreSignedPutUrl(key: string, bucket: string, acl = 'public-read'): string {
+  public getPreSignedPutUrl(key: string, bucket: string, acl = 'public-read-write'): string {
     const params = {
       ACL: acl,
       Bucket: bucket,

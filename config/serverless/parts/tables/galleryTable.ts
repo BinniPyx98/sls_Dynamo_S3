@@ -36,7 +36,7 @@ export const galleryConfig: AWSPartitial = {
               AttributeType: 'S',
             },
             {
-              AttributeName: 'password',
+              AttributeName: 'Hash',
               AttributeType: 'S',
             },
             {
@@ -50,7 +50,7 @@ export const galleryConfig: AWSPartitial = {
               KeyType: 'HASH',
             },
             {
-              AttributeName: 'password',
+              AttributeName: 'Hash',
               KeyType: 'RANGE',
             },
           ],

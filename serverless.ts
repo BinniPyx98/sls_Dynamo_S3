@@ -69,4 +69,10 @@ const masterConfig: AWS = {
   ],
 };
 
-module.exports = joinParts(masterConfig, [restApiCorsConfig, authorizationConfig, getGalleryConfig, galleryConfig]);
+module.exports = joinParts(masterConfig, [
+  restApiCorsConfig,
+  authorizationConfig,
+  getGalleryConfig,
+  galleryConfig,
+  s3Config,
+]);

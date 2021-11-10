@@ -48,7 +48,7 @@ export class GalleryManager {
     const s3 = new S3Service();
     const userEmail = imageKeyInS3.split('/')[0];
     const fileName = imageKeyInS3.split('/')[1];
-    const imageUrl = s3.getPreSignedGetUrl(userEmail, getEnv('S3_NAME')).split('?')[0];
+    const imageUrl = s3.getPreSignedGetUrl(`${userEmail}/${fileName}`, getEnv('S3_NAME')).split('?')[0];
     const decodedUrl = decodeURIComponent(imageUrl);
     log('decodedUrl = ' + decodedUrl);
     return this.service.updateStatus(userEmail, decodedUrl, fileName);
