@@ -1,6 +1,9 @@
-import { GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { GetItemCommand, QueryCommand, QueryCommandInput } from '@aws-sdk/client-dynamodb';
+import { marshall } from '@aws-sdk/util-dynamodb';
+import { getEnv } from '@helper/environment';
 import { dynamoClient } from '@services/dynamo-connect';
 import { APIGatewayAuthorizerResult, APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
+import { log } from '@helper/logger';
 import { UserAuthData, UserPresenceInDb } from './auth.inteface';
 import { AuthService } from './auth.service';
 
@@ -69,14 +72,19 @@ export class AuthManager {
       throw UNAUTHORIZED;
     }
     if (event.authorizationToken) {
-      const params = {
-        TableName: 'Kalinichecko-prod-Gallery',
-        Key: {
-          email: { S: userIDFromRequest },
+      const queryParams: QueryCommandInput = {
+        TableName: getEnv('GALLERY_TABLE_NAME'),
+        KeyConditionExpression: '#userEmail = :user',
+        ExpressionAttributeNames: {
+          '#userEmail': 'email',
         },
+        ExpressionAttributeValues: marshall({
+          ':user': userIDFromRequest,
+        }),
       };
-      const existUserInDb = await dynamoClient.send(new GetItemCommand(params));
-      if (!existUserInDb) {
+      const existUserInDb = await dynamoClient.send(new QueryCommand(queryParams));
+      log('test query in authirozer = ' + JSON.stringify(existUserInDb));
+      if (!existUserInDb.Items) {
         throw UNAUTHORIZED;
       }
     }

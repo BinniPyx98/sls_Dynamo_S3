@@ -1,18 +1,25 @@
-import { GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
+import {
+  GetItemCommand,
+  PutItemCommand,
+  QueryCommand,
+  QueryCommandInput,
+  UpdateItemCommand,
+} from '@aws-sdk/client-dynamodb';
 import { getEnv } from '@helper/environment';
 import { log } from '@helper/logger';
 import { dynamoClient } from '@services/dynamo-connect';
 import { S3Service } from '@services/s3.service';
+import * as crypto from 'crypto';
 import * as jwt from 'jsonwebtoken';
 import { DatabaseResult, GalleryObject, Metadata } from './gallery.inteface';
-import { unmarshall } from '@aws-sdk/util-dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 
 export class GalleryService {
   async checkFilterAndFindInDb(event): Promise<DatabaseResult> {
     const pageNumber = Number(event.queryStringParameters.page);
     const limit = Number(event.queryStringParameters.limit);
     const userIdFromRequest = await this.getUserIdFromToken(event);
-    log(userIdFromRequest);
+    log('getUseridFromToken returned for checkFilterAndFindInDb = ' + userIdFromRequest);
     let objectTotalAndImage;
     let result;
     let total;
@@ -26,7 +33,6 @@ export class GalleryService {
       total = objectTotalAndImage.total;
       result = objectTotalAndImage.result;
     }
-    //log('filterResult=' + JSON.stringify(result));
     return { result: result, total: total };
   }
 
@@ -35,45 +41,67 @@ export class GalleryService {
     pageNumber: number,
     limit: number
   ): Promise<DatabaseResult> {
-    const all_Images = {
-      TableName: 'Kalinichecko-prod-Gallery',
-      Key: {
-        email: { S: 'All' },
-      },
-    };
-    const myImages = {
-      TableName: 'Kalinichecko-prod-Gallery',
-      Key: {
-        email: { S: userIdFromRequest },
-      },
-    };
-    const allImgFromDynamo = await dynamoClient.send(new GetItemCommand(all_Images));
-    const userImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
-    let allArrayPath = [];
-    let userArrayPath = [];
-    const presentUserImageObject = Boolean(userImgFromDynamo.Item?.imageObject);
-    const presentAllImageObject = Boolean(allImgFromDynamo.Item?.imageObject);
-    log('test user and All' + presentAllImageObject + ' ' + presentUserImageObject);
-    if (!presentUserImageObject) {
-      userArrayPath = [];
-    } else {
-      for (const item of userImgFromDynamo.Item!.imageObject.L!) {
-        // @ts-ignore
-        userArrayPath.push(item.L[2].S);
-      }
-    }
+    // const all_Images: QueryCommandInput = {
+    //   TableName: getEnv('GALLERY_TABLE_NAME'),
+    //   KeyConditionExpression: '#userEmail = :user',
+    //   ExpressionAttributeNames: {
+    //     '#userEmail': 'email',
+    //   },
+    //   ExpressionAttributeValues: marshall({
+    //     ':user': 'All',
+    //   }),
+    // };
+    // const myImages: QueryCommandInput = {
+    //   TableName: getEnv('GALLERY_TABLE_NAME'),
+    //   KeyConditionExpression: '#userEmail = :user',
+    //   ExpressionAttributeNames: {
+    //     '#userEmail': 'email',
+    //   },
+    //   ExpressionAttributeValues: marshall({
+    //     ':user': userIdFromRequest,
+    //   }),
+    // };
+   // const allImgFromDynamo = await dynamoClient.send(new QueryCommand(all_Images));
+    //const userImgFromDynamo = await dynamoClient.send(new QueryCommand(myImages));
+    // @ts-ignore
+    const allArrayPath = await this.getAdminsImage();
+    log('allPathArray = ' + allArrayPath);
+    const userArrayPath = await this.getUsersImage(userIdFromRequest);
+   // const presentUserImageObject = userImgFromDynamo.Items;
+   // const presentAllImageObject = allImgFromDynamo.Items;
 
-    if (!presentAllImageObject) {
-      allArrayPath = [];
-    } else {
-      for (const item of allImgFromDynamo.Item!.imageObject.L!) {
-        // @ts-ignore
-        allArrayPath.push(item.L[2].S);
-      }
-    }
+    // if (presentUserImageObject?.length == 0) {
+    //   userArrayPath = [];
+    // } else {
+    //   for (const item of userImgFromDynamo.Items!) {
+    //     for (const prop in item) {
+    //       log('prop = ' + prop);
+    //       if (prop === 'urlImage') {
+    //         log('item.urlImage.S = ' + item.urlImage.S);
+    //         // @ts-ignore
+    //         userArrayPath.push(item.urlImage.S);
+    //       }
+    //     }
+    //     // @ts-ignore
+    //   }
+    // }
+
+    // if (presentAllImageObject?.length == 0) {
+    //   allArrayPath = [];
+    // } else {
+    //   for (const item of allImgFromDynamo.Items!) {
+    //     for (const prop in item) {
+    //       if (prop === 'urlImage') {
+    //         log('item in all = ' + item.urlImage.S);
+    //         // @ts-ignore
+    //         allArrayPath.push(item.urlImage.S);
+    //       }
+    //     }
+    //   }
+    // }
 
     const contArray = allArrayPath.concat(userArrayPath);
-
+    log('cont Array= ' + contArray);
     const total = Math.ceil(Number(contArray.length) / limit);
     const skip = Number((pageNumber - 1) * limit);
     let limitCounter = 0;
@@ -85,6 +113,66 @@ export class GalleryService {
     }
     return { result: result, total: total };
   }
+  async getAdminsImage(): Promise<Array<string>> {
+    const all_Images: QueryCommandInput = {
+      TableName: getEnv('GALLERY_TABLE_NAME'),
+      KeyConditionExpression: '#userEmail = :user',
+      ExpressionAttributeNames: {
+        '#userEmail': 'email',
+      },
+      ExpressionAttributeValues: marshall({
+        ':user': 'All',
+      }),
+    };
+
+    let adminsArrayPath = [];
+    const adminsImgFromDynamo = await dynamoClient.send(new QueryCommand(all_Images));
+
+    if (adminsImgFromDynamo.Items?.length == 0) {
+      adminsArrayPath = [];
+    } else {
+      for (const item of adminsImgFromDynamo.Items!) {
+        for (const prop in item) {
+          if (prop === 'urlImage') {
+            log('item in all = ' + item.urlImage.S);
+            // @ts-ignore
+            allArrayPath.push(item.urlImage.S);
+          }
+        }
+      }
+    }
+    return adminsArrayPath;
+  }
+
+  async getUsersImage(userIdFromRequest: string): Promise<Array<string>> {
+    const myImages: QueryCommandInput = {
+      TableName: getEnv('GALLERY_TABLE_NAME'),
+      KeyConditionExpression: '#userEmail = :user',
+      ExpressionAttributeNames: {
+        '#userEmail': 'email',
+      },
+      ExpressionAttributeValues: marshall({
+        ':user': userIdFromRequest,
+      }),
+    };
+
+    let usersArrayPath = [];
+    const adminsImgFromDynamo = await dynamoClient.send(new QueryCommand(myImages));
+
+    if (adminsImgFromDynamo.Items?.length == 0) {
+      usersArrayPath = [];
+    } else {
+      for (const item of adminsImgFromDynamo.Items!) {
+        for (const prop in item) {
+          if (prop === 'urlImage') {
+            // @ts-ignore
+            usersArrayPath.push(item.urlImage.S);
+          }
+        }
+      }
+    }
+    return usersArrayPath;
+  }
 
   async getImageForResponse__ForFilterMyImage(
     userIdFromRequest: string,
@@ -92,7 +180,7 @@ export class GalleryService {
     limit: number
   ): Promise<DatabaseResult> {
     const myImages = {
-      TableName: 'Kalinichecko-prod-Gallery',
+      TableName: getEnv('GALLERY_TABLE_NAME'),
       Key: {
         email: { S: userIdFromRequest },
       },
@@ -156,105 +244,49 @@ export class GalleryService {
     return userIdFromToken;
   }
 
-  async updateStatus(userEmail: string, imageUrl: string):Promise<void> {
-    const myImages = {
-      TableName: 'Kalinichecko-prod-Gallery',
-      Key: {
-        email: { S: userEmail },
-      },
-    };
-    const allImgFromDynamo = await dynamoClient.send(new GetItemCommand(myImages));
-    const unmarshallImagePathArray = unmarshall(allImgFromDynamo.Item!);
-    let lastImage = 0;
-    for (const item of unmarshallImagePathArray.imageObject) {
-      // @ts-ignore
-      lastImage++;
-    }
-    lastImage--;
-    log('last image index = ' + lastImage);
-    log('userEmail in function updateStatus = ' + userEmail);
-    const newStatus = {
-      TableName: 'Kalinichecko-prod-Gallery',
-      Key: {
-        email: { S: userEmail },
-      },
-      //UpdateExpression: 'SET #imageObject = list_append(#imageObject, :o)',
-      UpdateExpression: `SET #imageObject[${lastImage}][${1}] = :o`,
-      ExpressionAttributeNames: {
-        '#imageObject': 'imageObject',
-      },
-      ExpressionAttributeValues: {
-        ':o': {
-          S: 'CLOSE',
-        },
-      },
-      ReturnValues: 'UPDATED_NEW',
-    };
-    const addS3Url = {
-      TableName: 'Kalinichecko-prod-Gallery',
-      Key: {
-        email: { S: userEmail },
-      },
-      //UpdateExpression: 'SET #imageObject = list_append(#imageObject, :o)',
-      UpdateExpression: `SET #imageObject[${lastImage}] = list_append(#imageObject[${lastImage}], :o)`,
-      ExpressionAttributeNames: {
-        '#imageObject': 'imageObject',
-      },
-      ExpressionAttributeValues: {
-        ':o': {
-          L: [
-            {
-              S: `${imageUrl}`,
-            },
-          ],
-        },
-      },
-    };
-    const newStatusResponse = await dynamoClient.send(new UpdateItemCommand(newStatus));
-    const addS3UrlResponse = await dynamoClient.send(new UpdateItemCommand(addS3Url));
+  async updateStatus(userEmail: string, imageUrl: string, fileName: string): Promise<void> {
+    const hashImage = crypto.createHmac('sha256', 'test').update(fileName).digest('hex');
 
-    log(newStatusResponse);
-    log(addS3UrlResponse);
+    const updateItem = {
+      TableName: getEnv('GALLERY_TABLE_NAME'),
+      Key: marshall({
+        email: userEmail,
+        Hash: 'imageHash_' + hashImage,
+      }),
+      UpdateExpression: 'set imageStatus = :v_status, urlImage = :newUrl',
+      ExpressionAttributeValues: marshall({
+        ':v_status': 'CLOSE',
+        ':newUrl': imageUrl,
+      }),
+    };
+    const updateStatus = await dynamoClient.send(new UpdateItemCommand(updateItem));
+    log('result function updateStatus in service = ' + updateStatus);
   }
   async saveImgMetadata(event, metadata: Metadata): Promise<void> {
     const userEmail = await this.getUserIdFromToken(event);
-    const newImage = {
-      TableName: 'Kalinichecko-prod-Gallery',
-      Key: {
-        email: { S: userEmail },
-      },
-      UpdateExpression: 'SET #imageObject = list_append(#imageObject, :o)',
-      //UpdateExpression: 'SET #imageObject = :o',
-      ExpressionAttributeNames: {
-        '#imageObject': 'imageObject',
-      },
-      ExpressionAttributeValues: {
-        ':o': {
-          L: [
-            {
-              L: [
-                {
-                  L: [{ S: `${metadata.filename}` }, { S: `${metadata.contentType}` }, { S: `${metadata.size}` }],
-                },
+    const hashImage = crypto.createHmac('sha256', 'test').update(metadata.filename).digest('hex');
 
-                {
-                  S: 'OPEN',
-                },
-              ],
-            },
-          ],
-        },
-      },
+    const newUser = {
+      TableName: getEnv('GALLERY_TABLE_NAME'),
+      Item: marshall({
+        email: userEmail,
+        imageName: metadata.filename,
+        Hash: 'imageHash_' + hashImage,
+        extension: metadata.contentType,
+        imageSize: metadata.size,
+        imageStatus: 'OPEN',
+      }),
     };
-
-    const res = await dynamoClient.send(new UpdateItemCommand(newImage));
-    log(res);
+    const result = await dynamoClient.send(new PutItemCommand(newUser));
+    log('result function saveImgMetadata = ' + result);
   }
   async getUrlForUploadToS3(event, metadata: Metadata): Promise<string> {
     const userEmail = await this.getUserIdFromToken(event);
     const s3 = new S3Service();
     const url = s3.getPreSignedPutUrl(userEmail + '/' + metadata.filename, getEnv('S3_NAME'));
-    log(url);
+    log('Url for upload image, returned function getUrlForUploadToS3 =  ' + url);
+    const decodedUrl = decodeURIComponent(url);
+
     return url;
   }
 }

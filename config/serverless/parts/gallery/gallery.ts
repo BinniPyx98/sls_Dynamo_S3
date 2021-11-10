@@ -6,22 +6,22 @@ export const getGalleryConfig: AWSPartitial = {
     iam: {
       role: {
         statements: [
-          //       {
-          //         Effect: 'Allow',
-          //         Action: [
-          //           'dynamodb:Query',
-          //           'dynamodb:Scan',
-          //           'dynamodb:GetItem',
-          //           'dynamodb:PutItem',
-          //           'dynamodb:DeleteItem',
-          //           'dynamodb:UpdateItem',
-          //           'dynamodb:CreateTable',
-          //         ],
-          //         Resource: [
-          //           'arn:aws:dynamodb:*:*:table/${file(env.yml):${self:provider.stage}.JOBS_TABLE_NAME}',
-          //           'arn:aws:dynamodb:*:*:table/${file(env.yml):${self:provider.stage}.JOBS_TABLE_NAME}/index/*',
-          //         ],
-          //       },
+          // {
+          //   Effect: 'Allow',
+          //   Action: [
+          //     's3:PutObject',
+          //     's3:GetObject',
+          //     's3:getResourceUrl',
+          //     's3:getPreSignedPutUrl',
+          //     's3:PutObjectAsl',
+          //     's3:CreateBucket',
+          //     's3:GetObjectAcl',
+          //   ],
+          //   Resource: [
+          //     'arn:aws:dynamodb:*:*:table/${file(env.yml):${self:provider.stage}.S3_NAME}',
+          //     'arn:aws:dynamodb:*:*:table/${file(env.yml):${self:provider.stage}.S3_NAME}/index/*',
+          //   ],
+          // },
         ],
       },
     },
@@ -83,6 +83,7 @@ export const getGalleryConfig: AWSPartitial = {
         {
           s3: {
             bucket: 'kalinichecko-prod-s3bucket',
+            existing: true,
             event: 's3:ObjectCreated:*',
           },
         },

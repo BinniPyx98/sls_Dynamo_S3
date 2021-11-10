@@ -10,18 +10,7 @@ export const galleryConfig: AWSPartitial = {
         statements: [
           {
             Effect: 'Allow',
-            Action: [
-              'dynamodb:Query',
-              'dynamodb:Scan',
-              'dynamodb:GetItem',
-              'dynamodb:PutItem',
-              'dynamodb:DeleteItem',
-              'dynamodb:UpdateItem',
-              'dynamodb:CreateTable',
-              'dynamodb:DescribeTable',
-              'dynamodb:BatchGetItem',
-              'dynamodb:BatchWriteItem',
-            ],
+            Action: ['dynamodb:*'],
             Resource: [
               'arn:aws:dynamodb:*:*:table/${file(env.yml):${self:provider.stage}.GALLERY_TABLE_NAME}',
               'arn:aws:dynamodb:*:*:table/${file(env.yml):${self:provider.stage}.GALLERY_TABLE_NAME}/index/*',
@@ -42,18 +31,49 @@ export const galleryConfig: AWSPartitial = {
               AttributeName: 'email',
               AttributeType: 'S',
             },
+            {
+              AttributeName: 'imageName',
+              AttributeType: 'S',
+            },
+            {
+              AttributeName: 'Hash',
+              AttributeType: 'S',
+            },
+            {
+              AttributeName: 'status',
+              AttributeType: 'S',
+            },
           ],
           KeySchema: [
             {
               AttributeName: 'email',
               KeyType: 'HASH',
             },
+            {
+              AttributeName: 'Hash',
+              KeyType: 'RANGE',
+            },
+          ],
+          GlobalSecondaryIndexes: [
+            {
+              IndexName: 'FindImageIndex',
+              KeySchema: [
+                {
+                  AttributeName: 'imageName',
+                  KeyType: 'HASH',
+                },
+                {
+                  AttributeName: 'status',
+                  KeyType: 'RANGE',
+                },
+              ],
+              Projection: {
+                ProjectionType: 'ALL',
+              },
+            },
           ],
           BillingMode: 'PAY_PER_REQUEST',
           TableName: '${self:custom.tablesNames.GalleryTable.${self:provider.stage}}',
-          StreamSpecification: {
-            StreamViewType: 'NEW_AND_OLD_IMAGES',
-          },
         },
       },
     },
@@ -64,7 +84,7 @@ export const galleryConfig: AWSPartitial = {
         local: 'Kalinichecko-local-Gallery',
         dev: 'Kalinichecko-dev-Gallery',
         test: 'Kalinichecko-test-Gallery',
-        prod: 'Kalinichecko-prod-Gallery',
+        prod: 'kalinichecko-prod-gallery',
       },
     },
   },

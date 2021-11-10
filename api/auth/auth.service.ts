@@ -16,21 +16,25 @@ export class AuthService {
     const hashPass = crypto.createHmac('sha256', getEnv('SALT')).update(userPasswordFromQuery).digest('hex');
 
     const newUser = {
-      TableName: 'Kalinichecko-prod-Gallery',
+      TableName: getEnv('GALLERY_TABLE_NAME'),
       Item: {
         email: { S: userEmailFromQuery },
-        password: { S: hashPass },
+        Hash: { S: hashPass },
       },
     };
+    log('New user success created');
     return newUser;
   };
 
   async checkUserInDb(authData: UserAuthData): Promise<any> {
     const userEmailFromQuery = authData.email;
+    const hashPass = crypto.createHmac('sha256', getEnv('SALT')).update(authData.password).digest('hex');
+
     const params = {
-      TableName: 'Kalinichecko-prod-Gallery',
+      TableName: getEnv('GALLERY_TABLE_NAME'),
       Key: {
         email: { S: userEmailFromQuery },
+        Hash: { S: hashPass },
       },
     };
     const userPresenceInDb = await dynamoClient.send(new GetItemCommand(params));
@@ -39,7 +43,9 @@ export class AuthService {
   }
 
   addUserInDb(newUser): void {
-    dynamoClient.send(new PutItemCommand(newUser));
+    log('user in function addUserInDb ' + JSON.stringify(newUser));
+    const result = dynamoClient.send(new PutItemCommand(newUser));
+    log('result of adding a new user = ' + result);
   }
 
   async getUserIdFromTokenForAuthorizer(event: APIGatewayTokenAuthorizerEvent): Promise<string> {
@@ -60,24 +66,25 @@ export class AuthService {
   }
 
   async checkAuthData(authData: UserAuthData): Promise<UserPresenceInDb> {
-    log('checkAuthData entry');
     const tokenKey = getEnv('TOKEN_KEY');
 
     const [userPasswordFromQuery, userEmailFromQuery] = [authData.password, authData.email];
+    const hashPass = crypto.createHmac('sha256', getEnv('SALT')).update(userPasswordFromQuery).digest('hex');
     let userPresenceInDb;
     const params = {
-      TableName: 'Kalinichecko-prod-Gallery',
+      TableName: getEnv('GALLERY_TABLE_NAME'),
       Key: {
         email: { S: userEmailFromQuery },
+        Hash: { S: hashPass },
       },
     };
     userPresenceInDb = await dynamoClient.send(new GetItemCommand(params));
+    log(userPresenceInDb);
     /*
      * If user presence in db check password
      */
-    const hashPass = crypto.createHmac('sha256', getEnv('SALT')).update(userPasswordFromQuery).digest('hex');
     if (userPresenceInDb.Item) {
-      if (userPresenceInDb.Item.password.S === hashPass) {
+      if (userPresenceInDb.Item.Hash.S === hashPass) {
         const userEmail = userPresenceInDb.Item!.email.S;
         console.log('successful authorization');
         userPresenceInDb = {
@@ -92,9 +99,6 @@ export class AuthService {
     } else {
       throw UNAUTHORIZED;
     }
-    // log('service.checkAuthData return=' + JSON.stringify(userPresenceInDb));
-    // const testtt = JSON.stringify(marshall({ obj: [[['download.jpeg', 'image/jpeg', '7915'], 'url']] }));
-    // log('testtt=' + testtt);
     log('checkAuthResult return ' + Boolean(userPresenceInDb));
     return userPresenceInDb;
   }
